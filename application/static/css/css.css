@@ -1,0 +1,7 @@
+.card-body{padding: 1rem 0rem!important;}
+.form-check-input:checked {background-color: #33c5ff;border-color: #33c5ff;}
+.btn-primary, .sensor_header { background-color: #393939!important; border-color:#393939!important; color: #fff!important;}
+.text-left{text-align:left}
+.text-right{text-align:right}
+.pointer{cursor:pointer;}
+.alert-secondary {color: #383d41;background-color: #e2e3e5;border-color: #d6d8db;}

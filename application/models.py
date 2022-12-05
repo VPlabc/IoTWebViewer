@@ -12,7 +12,15 @@ class IncomeExpenses(db.Model):
     amount = db.Column(db.Integer, nullable=False)
     
 
+def __init__(self, id, type, category,date, amount):
+   self.id = id
+   self.type = type
+   self.category = category
+   self.date = date
+   self.amount = amount
 
+
+db.create_all()
 
 
 
