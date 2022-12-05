@@ -252,8 +252,7 @@ function AddSensorBlock(item){
      else c = '';
 
      html = "<div class='col p-sm-3' >";
-
-     html += "<button type='button' class='btn btn-warning' onclick=\"loadSensor('"+sid+".log')\">View</button>";  
+ 
 
      html += " <div class='pointer card mb-4 rounded-3 shadow-sm'>";
      html += "     <div class='card-header py-3 sensor_header'><p class='my-0 fw-normal'> "+getSensorReadableName(sid)+"</p></div>";
@@ -262,6 +261,8 @@ function AddSensorBlock(item){
      if(scategory != 0) html += "       <ul class='list-unstyled mt-3 mb-3'><li>"+sbattery+"v  "+b+"</li><li><small>"+getFormatedDuration(stimetamp)+"</small></li></ul>";
      else html += "       <ul class='list-unstyled mt-3 mb-3'><li>&nbsp;</li><li><small style='"+c+"'>"+readableSize(stimetamp)+"</small></li></ul>";
      html += "     </div>";
+
+     html += "<button type='button' class='btn btn-warning' onclick=\"loadSensor('"+sid+".log')\">View</button>"; 
      html += "   </div>";
      html += " </div>";
      document.getElementById("lista").innerHTML += html; 

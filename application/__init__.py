@@ -2,7 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 
-
+sensors_saved = 7
 
 app = Flask(__name__)
 
