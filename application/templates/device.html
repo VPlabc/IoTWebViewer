@@ -13,16 +13,28 @@
     <!--  CSS -->
     <link rel="stylesheet" href="{{url_for('static', filename='css/css.css')}}">
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.css')}}">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+
+    <!-- <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.css')}}"> -->
     <!-- <link rel="stylesheet" href="bootstrap.css"> -->
     <!-- <link rel="stylesheet" href="main.css?v=7"> -->
+    <style>
+      body {
+          background: #e8cbc0;
+          background: -webkit-linear-gradient(to right, #e8cbc0, #636fa4);
+          background: linear-gradient(to right, #e8cbc0, #636fa4);
+          min-height: 100vh;
+      }
+    </style>
     </head>
     <body>
     <div id="top_bar" style='position:absolute;top:0px;height:5px;width:100%;background-color:#3c3c3c;'></div>
     <div class="container py-3">
     <header>
       <div class="d-flex flex-column flex-md-row align-items-center pb-3 mb-4 border-bottom">
-        <a href="/" class="d-flex align-items-center text-dark text-decoration-none"><span class="fs-4 logo">
+        <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
+          <span class="fs-4 logo">
             <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="14.424mm" height="16.7652mm" version="1.0" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" image-rendering="optimizeQuality" fill-rule="evenodd" clip-rule="evenodd"
             viewBox="0 0 1442.46 1676.59"
             xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -39,9 +51,10 @@
             </g>
             </g>
             </svg>
-
-        </span></a><span class="fs-4"  onclick="loadSensors();return false;">Device</span>
-        <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto">
+          </span>
+        </a>
+        <span class="fs-4 "  onclick="loadDevices();return false;">Device</span>
+        <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto ">
         <span class="me-3 py-2 me-4 text-danger" id="rota_status"></span>
           <span class="me-3 py-2 text-dark text-decoration-none d-none"  style="cursor:pointer;" onclick="recheckSDCard();return false;" id="sdcard_status">
                <svg viewBox="0 0 24 24" style="width:16px;height:16px;color: #df1919;">
@@ -57,9 +70,21 @@
         </nav>
       </div>
     </header>
+    
     <main>
+      <p>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+         {% for message in messages %}
+           <div class="alert alert-success">
+            <strong>{{ message }}</strong>
+          </div>
+         {% endfor %}
+          {% endif %}
+        {% endwith %}
+       </p>
        <div id="mqtt_alert" role="alert" class="alert alert-danger mb-4 d-none">The hub is not connected to the MQTT server</div>
-       <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 text-center" id="lista"><div class="col-12 mt-5" style="width:100%!important;text-align:center;color:#cccccc;">loading ...</div></div>
+       <div class="row row-cols-4 row-cols-md-6 row-cols-lg-8 row-cols-xl-5 text-center" id="lista"><div class="col-12 mt-5" style="width:100%!important;text-align:center;color:#cccccc;">loading ...</div></div>
        <div class="row text-center" id="listh"></div> 
     </main>
     </body>
@@ -69,6 +94,9 @@ const GROUP_SWITCH = 1
 const GROUP_HT = 2
 const GROUP_MOTION =  3
 const GROUP_RELAY =  4
+const GROUP_MOISTURE =  5
+const GROUP_TEMP =  6
+const GROUP_VALVE =  7
 sensor_category = 0;
 
 const CBLUE = "#33c5ff"
@@ -79,29 +107,34 @@ sensor_data_array = [];
 sensor_info = [];
 sensors_name = [];
 
-function loadSensors() {
+var reloadPeriod = 5000;
+var running = true;
+    
+function loadDevices() {
   
   getSystemStatus();
   if( document.getElementById("lista").innerHTML == "") return;
   const xhttp = new XMLHttpRequest();
-  xhttp.addEventListener('progress', handleSensorLoading);
+  xhttp.addEventListener('progress', handleDeviceLoading);
   xhttp.open("GET", "/raw", true);
   xhttp.send();
-  
+        if(running) setTimeout(loadDevices, reloadPeriod);
   xhttp.onload = function() {
     if(this.responseText){
       clearPage();
       var sensors = this.responseText.split('\n');
       sensors.forEach( function(item) {
-        AddSensorBlock(item);
+        AddDeviceBlock(item);
       });
+
     }else{
       document.getElementById("lista").innerHTML = "<div class='pt-3 text-center' style='width:100%!important'><p>No sensors have been detected.</p></div>";
     }
   }
 }
+// function run(){if(!running){running = true; loadDevices(); }}
 
-function loadSensorsName(){
+function loadDevicesName(){
 
   const xhttp = new XMLHttpRequest();
   xhttp.open("GET", "/names", true);
@@ -121,21 +154,21 @@ function loadSensorsName(){
   } 
 }
 
-function getSensorReadableName(id){
+function getDeviceReadableName(id){
 
   if( sensors_name[id] && sensors_name[id].length > 1 ) return sensors_name[id];
   else return id;
 }
 
-function deleteSensor(id){
+function deleteDevice(id){
 
   if (confirm("Delete?")) {
     const xhttp = new XMLHttpRequest();
-   xhttp.open("GET", "/delete?id="+id, true);
+   xhttp.open("GET", "/delete/"+id, true);
    xhttp.send();
   
    xhttp.onload = function() {
-     if(this.responseText == "1") loadSensor(id);
+     if(this.responseText == "1") loadDevice(id);
      else alert('Error deleting file!');
     } 
   }
@@ -149,7 +182,7 @@ function recheckSDCard(id){
   xhttp.onload = function() {
     if(this.responseText == "1"){
       getSystemStatus();
-      loadSensors();
+      loadDevices();
     }
   }
 }
@@ -216,9 +249,9 @@ function clearPage(){
   document.getElementById("listh").innerHTML = "";
 }
 
-function AddSensorBlock(item){
+function AddDeviceBlock(item){
 
-     const [sid,scategory,sstatus,stemperature,shumidity,sunit,sbattery,stimetamp] = item.split(',');  
+     const [sid,scategory,sstatus,stemperature,shumidity,sunit,sbattery,mbattery,stimetamp,rssi] = item.split(',');  
      if(!sid) return;
      
      var perc = (sbattery - 3.3) / 0.006 | 0; 
@@ -231,7 +264,11 @@ function AddSensorBlock(item){
      if(scategory==3 && sstatus == 0)   s = "CLEAR"; 
      if(scategory==4 && sstatus == 1)   s = "ON"; 
      if(scategory==4 && sstatus == 0)   s = "OFF"; 
-     if(scategory==2)  s = parseFloat(stemperature).toFixed(1) + sunit;
+     if(scategory==7 && sstatus == 1)   s = "OPEN"; 
+     if(scategory==7 && sstatus == 0)   s = "CLOSED"; 
+     if(scategory==2)  s = parseFloat(stemperature).toFixed(1) + sunit; h = parseFloat(shumidity).toFixed(1) + "%";
+     if(scategory==5)  h = parseFloat(shumidity).toFixed(1) + "%";
+     if(scategory==6)  s = parseFloat(stemperature).toFixed(1) + sunit;;
      
      if( sunit == "°F") dunit = 1;
 
@@ -241,35 +278,68 @@ function AddSensorBlock(item){
 
      if(sbattery < 3.4) bgc = "text-danger";
      else bgc = "";
-       
+     
+     if(mbattery >= 13.5)  b1 = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery-full' viewBox='0 0 16 16'><path d='M2 6h10v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";  
+     else if(mbattery >= 12.5) b1 = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery-half' viewBox='0 0 16 16'><path d='M2 6h5v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
+     else b1 = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery text-danger' viewBox='0 0 16 16'><path d='M0 6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6zm2-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H2zm14 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
+
+     if(mbattery < 11.5) bgc = "text-danger";
+     else bgc = "";
+
      if(scategory==1)       icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-door-closed' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M3 2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v13h1.5a.5.5 0 0 1 0 1h-13a.5.5 0 0 1 0-1H3V2zm1 13h8V2H4v13z'/><path d='M9 9a1 1 0 1 0 2 0 1 1 0 0 0-2 0z'/></svg>";  
-     else if(scategory==2)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";
+     else if(scategory==2){  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";
+                             icon1 = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='currentColor' class='bi bi-droplet' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M7.21.8C7.69.295 8 0 8 0c.109.363.234.708.371 1.038.812 1.946 2.073 3.35 3.197 4.6C12.878 7.096 14 8.345 14 10a6 6 0 0 1-12 0C2 6.668 5.58 2.517 7.21.8zm.413 1.021A31.25 31.25 0 0 0 5.794 3.99c-.726.95-1.436 2.008-1.96 3.07C3.304 8.133 3 9.138 3 10a5 5 0 0 0 10 0c0-1.201-.796-2.157-2.181-3.7l-.03-.032C9.75 5.11 8.5 3.72 7.623 1.82z'/><path fill-rule='evenodd' d='M4.553 7.776c.82-1.641 1.717-2.753 2.093-3.13l.708.708c-.29.29-1.128 1.311-1.907 2.87l-.894-.448z'/></svg>";  
+     }
      else if(scategory==3)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-walk' style='margin-top:-8px' viewBox='0 0 320 512 '><path d='M208 96c26.5 0 48-21.5 48-48S234.5 0 208 0s-48 21.5-48 48 21.5 48 48 48zm94.5 149.1l-23.3-11.8-9.7-29.4c-14.7-44.6-55.7-75.8-102.2-75.9-36-.1-55.9 10.1-93.3 25.2-21.6 8.7-39.3 25.2-49.7 46.2L17.6 213c-7.8 15.8-1.5 35 14.2 42.9 15.6 7.9 34.6 1.5 42.5-14.3L81 228c3.5-7 9.3-12.5 16.5-15.4l26.8-10.8-15.2 60.7c-5.2 20.8.4 42.9 14.9 58.8l59.9 65.4c7.2 7.9 12.3 17.4 14.9 27.7l18.3 73.3c4.3 17.1 21.7 27.6 38.8 23.3 17.1-4.3 27.6-21.7 23.3-38.8l-22.2-89c-2.6-10.3-7.7-19.9-14.9-27.7l-45.5-49.7 17.2-68.7 5.5 16.5c5.3 16.1 16.7 29.4 31.7 37l23.3 11.8c15.6 7.9 34.6 1.5 42.5-14.3 7.7-15.7 1.4-35.1-14.3-43zM73.6 385.8c-3.2 8.1-8 15.4-14.2 21.5l-50 50.1c-12.5 12.5-12.5 32.8 0 45.3s32.7 12.5 45.2 0l59.4-59.4c6.1-6.1 10.9-13.4 14.2-21.5l13.5-33.8c-55.3-60.3-38.7-41.8-47.4-53.7l-20.7 51.5z'></path></svg>";
      else if(scategory==4)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-lightbulb' viewBox='0 0 16 16'><path d='M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z'/></svg>";
+     else if(scategory==5)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-moisture' viewBox='0 0 16 16'><path d='M13.5 0a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V7.5h-1.5a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V15h-1.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 .5-.5V.5a.5.5 0 0 0-.5-.5h-2zM7 1.5l.364-.343a.5.5 0 0 0-.728 0l-.002.002-.006.007-.022.023-.08.088a28.458 28.458 0 0 0-1.274 1.517c-.769.983-1.714 2.325-2.385 3.727C2.368 7.564 2 8.682 2 9.733 2 12.614 4.212 15 7 15s5-2.386 5-5.267c0-1.05-.368-2.169-.867-3.212-.671-1.402-1.616-2.744-2.385-3.727a28.458 28.458 0 0 0-1.354-1.605l-.022-.023-.006-.007-.002-.001L7 1.5zm0 0-.364-.343L7 1.5zm-.016.766L7 2.247l.016.019c.24.274.572.667.944 1.144.611.781 1.32 1.776 1.901 2.827H4.14c.58-1.051 1.29-2.046 1.9-2.827.373-.477.706-.87.945-1.144zM3 9.733c0-.755.244-1.612.638-2.496h6.724c.395.884.638 1.741.638 2.496C11 12.117 9.182 14 7 14s-4-1.883-4-4.267z'/></svg>";
+     else if(scategory==6)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";
      else icon = "";
-
+     iconSetting = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-gear' viewBox='0 0 16 16'><path d='M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z'/><path d='M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z'/></svg>";
+     iconHistory = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-clock-history' viewBox='0 0 16 16'><path d='M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z'/><path d='M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z'/><path d='M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z'/></svg>";
+     iconRSSI = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-broadcast' viewBox='0 0 16 16'><path d='M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z'/></svg>";
      if(scategory == 0) c = 'color:#dfdfdf;';
      else c = '';
 
-     html = "<div class='col p-sm-3' >";
- 
+     html = "<div class='col-sm-12 col-md-6 col-lg-3 col-xl-3  mb-3' style='border-top-right-radius:1rem;border-top-left-radius:1rem;border-bottom-left-radius:1rem;border-bottom-right-radius:1rem;'>";
+     html += " <div class='pointer card  shadow  bg-white rounded' >";
+     if(scategory != 0 && scategory == 7 && mbattery > 10) html += "<div class='card-header py-3 sensor_header'><div class='row'><div class='col'><p class='my-0 fw-normal '> "+getDeviceReadableName(sid)+"</p></div><div class='col'><small>"+sbattery+"v  "+b+ " | " +mbattery+"v  "+b1+"</small></div></div></div>";
+     else html += "<div class='card-header py-3 sensor_header align-items-start'><div class='row'><div class='col'><p class='my-0 fw-normal'> "+getDeviceReadableName(sid)+"</p></div><div class='col'>"+sbattery+"v  "+b+"</div></div></div>";
+     html += "     <div class='card-body'><div class='row'>";
+      if(scategory != 0 && scategory == 4  && sstatus == 0)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+sid+"/1')\">ON</button></h2></div><div class='col-8'><h2 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h2></div>";
+      if(scategory != 0 && scategory == 4  && sstatus == 1)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+sid+"/0')\">OFF</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
+      if(scategory != 0 && scategory == 7  && sstatus == 1)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+sid+"/0')\">Close</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
+      if(scategory != 0 && scategory == 7  && sstatus == 0)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+sid+"/1')\">Open</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
+      if(scategory != 0 && scategory != 2 && scategory != 4 && scategory != 5 && scategory != 7 )html += "<div class='col-10'><h2 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'>"+icon+" "+s+"</h2></div><div class='col-2'><h3 class='card-title pricing-card-title mt-1' style='"+c+"'></h3></div>";
+      if(scategory != 0 && scategory == 5 )html += "<div class='col-10'><h2 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'>"+icon+" "+h+"</h2></div><div class='col-2'><h3 class='card-title pricing-card-title mt-1' style='"+c+"'></h3></div>";
+      if(scategory != 0 && scategory == 2 )html += "<div class='col-6'><h4 class='card-title pricing-card-title mt-1' style='"+c+"'>"+icon+" "+s+"</h3></div><div class='col-6'> \
+                                                    <h4 class='card-title pricing-card-title mt-1' style='"+c+"'>"+icon1+" "+h+"</h4></div>";
+    //  if(scategory != 0 && scategory != 4 ) html += "       <ul class='list-unstyled mt-1 mb-1'><li>"+sbattery+"v  "+b+"</li><li><small>"+getFormatedDuration(stimetamp)+"</small></li></ul>";
+    //  else if(scategory == 4) html += "       <ul class='list-unstyled mt-1 mb-1'><li>"+"main: "+sbattery+"v  "+b+ " | " +sbattery+"v  "+b+"</li><li><small>"+getFormatedDuration(stimetamp)+"</small></li></ul>";
+     html += "       </div><ul class='list-unstyled '><li>" + iconRSSI + " " + rssi + "</li><li><small style='"+c+"'>"+getFormatedDuration(stimetamp)+"</small></li></ul>";
 
-     html += " <div class='pointer card mb-4 rounded-3 shadow-sm'>";
-     html += "     <div class='card-header py-3 sensor_header'><p class='my-0 fw-normal'> "+getSensorReadableName(sid)+"</p></div>";
-     html += "     <div class='card-body'>";
-     html += "       <h2 class='card-title pricing-card-title mt-3' style='"+c+"'>"+icon+" "+s+"</h2>";
-     if(scategory != 0) html += "       <ul class='list-unstyled mt-3 mb-3'><li>"+sbattery+"v  "+b+"</li><li><small>"+getFormatedDuration(stimetamp)+"</small></li></ul>";
-     else html += "       <ul class='list-unstyled mt-3 mb-3'><li>&nbsp;</li><li><small style='"+c+"'>"+readableSize(stimetamp)+"</small></li></ul>";
-     html += "     </div>";
-
-     html += "<button type='button' class='btn btn-warning' onclick=\"loadSensor('"+sid+".log')\">View</button>"; 
-     html += "   </div>";
-     html += " </div>";
+     html += "</div>"
+     html += "<div class='card-footer sensor_header'>";
+     html += "<div class='row '>";
+      // if(scategory==4 && sstatus == 1) html += "<div class='col'><button type='button' class='btn btn-warning' onclick=\"changeState('"+sid+"/0')\">OFF</button></div>";
+      // if(scategory==4 && sstatus == 0) html += "<div class='col'><button type='button' class='btn btn-warning' onclick=\"changeState('"+sid+"/1')\">ON</button></div>";
+    
+     html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' onclick=\"loadDevice('"+sid+"')\"><h6><small>" + iconHistory + " View</small></h6></button></div>";
+     html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' ><h6><small>" + iconSetting + " Setting</small></h6></button></div>";
+     
+     html += "   </div></div></div>";
      document.getElementById("lista").innerHTML += html; 
 }
 
-
-function loadSensor(id) {
+function changeState(id) {
+  const xhttp = new XMLHttpRequest();
+  xhttp.open("GET", "/changestate/"+ id , true);
+  xhttp.send();
+  xhttp.onload = function() {
+  
+  }
+}
+function loadDevice(id) {
   
   sensor_data_array = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
   sensor_data_array["min"] = 1000;
@@ -279,8 +349,8 @@ function loadSensor(id) {
   
   cursorLoading();
   const xhttp = new XMLHttpRequest();
-  xhttp.addEventListener('progress', handleSensorLoading);
-  xhttp.open("GET", "/sensor?id="+ id, true);
+  xhttp.addEventListener('progress', handleDeviceLoading);
+  xhttp.open("GET", "/sensor/"+ id, true);
   xhttp.send();
   
   xhttp.onload = function() {
@@ -288,20 +358,20 @@ function loadSensor(id) {
     document.getElementById("lista").innerHTML = "<div class='col-12 mt-5' style='width:100%!important;text-align:center;color:#cccccc;'>loading ... 100%</div>";  
     if(this.responseText && this.responseText != "No SD card found."){
       clearPage();
-      html = " <div class=''>";
-      html += "     <div class='row alert mb-4' style='padding:25px!important;background-color:#393939;margin-top:-27px;color:white;border-top-right-radius:0rem;border-top-left-radius:0rem;border-bottom-left-radius:0.5rem;border-bottom-right-radius:0.6rem;'><div id='icon' class='col-1'></div><div class='my-0 fw-normal col-2' style='text-align:left'>"+getSensorReadableName(id.substring(0, id.length-4))+"</div><div id='scount' class='col-4'>"+id+"</div><div id='scount' class='col-3'></div><div id='sbattery' class='col-2'></div></div><div id='sgraph'></div><div id='sdata' class='p-2' style='color:#666666'></div>";
+      html = " <div class='col-12'>";
+      html += "     <div class='row alert mb-4' style='padding:25px!important;background-color:#393939;margin-top:-27px;color:white;border-top-right-radius:0rem;border-top-left-radius:0rem;border-bottom-left-radius:0.5rem;border-bottom-right-radius:0.6rem;'><div id='icon' class='col-1'></div><div class='my-0 fw-normal col-2' style='text-align:left'> <a style='color:white' type='button' class='btn btn-warning' href='/sen'>back</a>"+getDeviceReadableName(id.substring(0, id.length-4))+"</div><div id='scount' class='col-4'>"+id+"</div><div class='col-3'><a  type='button' class='btn btn-warning' style='color:red' href='#' onclick=\"deleteDevice('"+id+"');return false;\"> Delete</a></div><div id='sbattery' class='col-2'></div></div><div id='sgraph'></div><div id='sdata' class='p-2' style='color:#666666'></div>";
 
       document.getElementById("listh").innerHTML += html; 
       var sensors = this.responseText.split('\n');
       sensors.forEach( function(item) {
-        AddSensorLine(item);
-        collectSensorData(item);
+        AddDeviceLine(item);
+        collectDeviceData(item);
       });
        html = " </div>";
       document.getElementById("listh").innerHTML += html; 
       if( sensor_info['count'] > 1){
         showLatestData();
-        plotSensorData();
+        plotDeviceData();
       }else{
         document.getElementById("listh").innerHTML += "<div class='col-12 mt-5' style='width:100%!important;text-align:center;color:#cccccc;'>No data</div>";
       }
@@ -311,15 +381,15 @@ function loadSensor(id) {
   }
 }
 
-function handleSensorLoading(e){
+function handleDeviceLoading(e){
 
   if (e.lengthComputable)
     document.getElementById("lista").innerHTML = "<div class='col-12 mt-5' style='width:100%!important;text-align:center;color:#cccccc;'>loading ... "+ parseInt((e.loaded / e.total) * 100) +"%</div>";  
 }
 
-function AddSensorLine(item){
+function AddDeviceLine(item){
 
-    const [ltimestamp,lcategory,lstatus,ltemperature,lhumidity,lbattery] = item.split(',');  
+    const [ltimestamp,lcategory,lstatus,ltemperature,lhumidity,lbattery,lmbattery,lrssi] = item.split(',');  
     if(!ltimestamp || !lcategory || !lbattery) return;
 
     sensor_category = lcategory;
@@ -327,6 +397,7 @@ function AddSensorLine(item){
     if( sensor_info['count'] > 0 ) sensor_info['count'] = sensor_info['count'] + 1;
     else sensor_info['count'] = 1;
     sensor_info['battery'] = lbattery;
+    sensor_info['mbattery'] = lmbattery;
     sensor_info['timestamp'] = ltimestamp;
     
     const date = new Date(ltimestamp * 1000);
@@ -334,13 +405,16 @@ function AddSensorLine(item){
      if(lcategory==1)       document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-door-closed' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M3 2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v13h1.5a.5.5 0 0 1 0 1h-13a.5.5 0 0 1 0-1H3V2zm1 13h8V2H4v13z'/><path d='M9 9a1 1 0 1 0 2 0 1 1 0 0 0-2 0z'/></svg>";  
      else if(lcategory==2)  document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";
      else if(lcategory==3)  document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-walk' style='margin-top:-8px' viewBox='0 0 320 512 '><path d='M208 96c26.5 0 48-21.5 48-48S234.5 0 208 0s-48 21.5-48 48 21.5 48 48 48zm94.5 149.1l-23.3-11.8-9.7-29.4c-14.7-44.6-55.7-75.8-102.2-75.9-36-.1-55.9 10.1-93.3 25.2-21.6 8.7-39.3 25.2-49.7 46.2L17.6 213c-7.8 15.8-1.5 35 14.2 42.9 15.6 7.9 34.6 1.5 42.5-14.3L81 228c3.5-7 9.3-12.5 16.5-15.4l26.8-10.8-15.2 60.7c-5.2 20.8.4 42.9 14.9 58.8l59.9 65.4c7.2 7.9 12.3 17.4 14.9 27.7l18.3 73.3c4.3 17.1 21.7 27.6 38.8 23.3 17.1-4.3 27.6-21.7 23.3-38.8l-22.2-89c-2.6-10.3-7.7-19.9-14.9-27.7l-45.5-49.7 17.2-68.7 5.5 16.5c5.3 16.1 16.7 29.4 31.7 37l23.3 11.8c15.6 7.9 34.6 1.5 42.5-14.3 7.7-15.7 1.4-35.1-14.3-43zM73.6 385.8c-3.2 8.1-8 15.4-14.2 21.5l-50 50.1c-12.5 12.5-12.5 32.8 0 45.3s32.7 12.5 45.2 0l59.4-59.4c6.1-6.1 10.9-13.4 14.2-21.5l13.5-33.8c-55.3-60.3-38.7-41.8-47.4-53.7l-20.7 51.5z'></path></svg>";
-     else if(scategory==4)  document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-lightbulb' viewBox='0 0 16 16'><path d='M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z'/></svg>";
+     else if(lcategory==4)  document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-lightbulb' viewBox='0 0 16 16'><path d='M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z'/></svg>";
+     else if(lcategory==5)  document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-moisture' viewBox='0 0 16 16'><path d='M13.5 0a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V7.5h-1.5a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V15h-1.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 .5-.5V.5a.5.5 0 0 0-.5-.5h-2zM7 1.5l.364-.343a.5.5 0 0 0-.728 0l-.002.002-.006.007-.022.023-.08.088a28.458 28.458 0 0 0-1.274 1.517c-.769.983-1.714 2.325-2.385 3.727C2.368 7.564 2 8.682 2 9.733 2 12.614 4.212 15 7 15s5-2.386 5-5.267c0-1.05-.368-2.169-.867-3.212-.671-1.402-1.616-2.744-2.385-3.727a28.458 28.458 0 0 0-1.354-1.605l-.022-.023-.006-.007-.002-.001L7 1.5zm0 0-.364-.343L7 1.5zm-.016.766L7 2.247l.016.019c.24.274.572.667.944 1.144.611.781 1.32 1.776 1.901 2.827H4.14c.58-1.051 1.29-2.046 1.9-2.827.373-.477.706-.87.945-1.144zM3 9.733c0-.755.244-1.612.638-2.496h6.724c.395.884.638 1.741.638 2.496C11 12.117 9.182 14 7 14s-4-1.883-4-4.267z'/></svg>";
+     else if(lcategory==6)  document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";
+     else if(lcategory==7)  document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-broadcast' viewBox='0 0 16 16'><path d='M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z'/></svg>";
      else document.getElementById("icon").innerHTML = "";
      
-     html  = "<div class='row mb-0' style='font-size:0.8rem;'><div class='col-3 text-left'>"+date.toDateString()+"</div><div class='col-3 text-left'>"+date.toLocaleTimeString('en-US')+"</div>";
+     html  = "<div class='row mb-0' style='font-size:0.8rem;'><div class='col-4 text-left'>"+date.toDateString()+"</div><div class='col-2 text-left'>"+date.toLocaleTimeString('en-US')+"</div>";
      if( lcategory == 1){
-        if(lstatus == 0) html += "<div class='col-4 text-left'>CLOSED</div>"; 
-        else html += "<div class='col-4 text-left'>OPEN</div>";       
+        if(lstatus == 0) html += "<div class='col-2 text-left'>CLOSED</div>"; 
+        else html += "<div class='col-2 text-left'>OPEN</div>";       
      }
      if( lcategory == 2){
         if(lhumidity > 0){
@@ -351,21 +425,39 @@ function AddSensorLine(item){
         }
      } 
      if( lcategory == 3){
-        if(lstatus == 1) html += "<div class='col-4 text-left'>MOTION</div>"; 
-        else html += "<div class='col-4 text-left'>CLEAR</div>";     
+        if(lstatus == 1) html += "<div class='col-2 text-left'>MOTION</div>"; 
+        else html += "<div class='col-2 text-left'>CLEAR</div>";     
      } 
      if( lcategory == 4){
-        if(lstatus == 1) html += "<div class='col-4 text-left'>ON</div>"; 
-        else html += "<div class='col-4 text-left'>OFF</div>";  
-        html += "<div><button type='button' class='btn btn-warning'>Warning</button></div>";  
+        if(lstatus == 1) html += "<div class='col-2 text-left'>ON</div>"; 
+        else html += "<div class='col-2 text-left'>OFF</div>";  
      } 
-     
+     if( lcategory == 5){
+        html += "<div class='col-2 text-left'>"+lhumidity+"%</div>";  
+     } 
+     if( lcategory == 6){
+        html += "<div class='col-2 text-left'>"+ltemperature+"%</div>";  
+     } 
+     if( lcategory == 7){
+        if(lstatus == 1) html += "<div class='col-2 text-left'>OPEN</div>"; 
+        else html += "<div class='col-2 text-left'>CLOSE</div>";  
+     } 
+
+
      if(lbattery >= 3.75)  b = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery-full' viewBox='0 0 16 16'><path d='M2 6h10v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";  
      else if(lbattery >= 3.4) b = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery-half' viewBox='0 0 16 16'><path d='M2 6h5v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
      else b = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery text-danger' viewBox='0 0 16 16'><path d='M0 6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6zm2-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H2zm14 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
 
-     html += "<div class='col-2 text-right'>"+ b + " " + lbattery+"volt</div></div>"; 
-    
+     
+     if(lmbattery >= 13.2)  b1 = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery-full' viewBox='0 0 16 16'><path d='M2 6h10v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";  
+     else if(lmbattery >= 12.5) b1 = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery-half' viewBox='0 0 16 16'><path d='M2 6h5v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
+     else b1 = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-battery text-danger' viewBox='0 0 16 16'><path d='M0 6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6zm2-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H2zm14 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
+
+
+     html += "<div class='col-1 text-left'>"+ iconRSSI + " " + lrssi+"</div>"; 
+     html += "<div class='col-1 text-center'>"+ b + " " + lmbattery+"v</div>"; 
+     if(lbattery >= 10)html += "<div class='col-1 text-center'>"+ b1 + " " + lbattery+"v</div>"; 
+     html += "</div>"
      var sdata = document.getElementById("sdata");
      sdata.innerHTML = html + sdata.innerHTML; 
      if(sensor_info['count'] > 200)  sdata.removeChild(sdata.lastChild);
@@ -374,26 +466,30 @@ function AddSensorLine(item){
 
 function showLatestData(){
 
-     if(sensor_info['battery']  >= 3.75)  b = "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='20' fill='currentColor' class='bi bi-battery-full' viewBox='0 0 16 16'><path d='M2 6h10v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";  
-     else if(sensor_info['battery']  >= 3.4) b = "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='20' fill='currentColor' class='bi bi-battery-half' viewBox='0 0 16 16'><path d='M2 6h5v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
+     if(sensor_info['mbattery']  >= 3.75)  b = "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='20' fill='currentColor' class='bi bi-battery-full' viewBox='0 0 16 16'><path d='M2 6h10v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";  
+     else if(sensor_info['mbattery']  >= 3.4) b = "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='20' fill='currentColor' class='bi bi-battery-half' viewBox='0 0 16 16'><path d='M2 6h5v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
      else b = "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='20' fill='currentColor' class='bi bi-battery text-danger' viewBox='0 0 16 16'><path d='M0 6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6zm2-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H2zm14 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
-    
-    document.getElementById("scount").innerHTML = sensor_info['count'] + " records <a style='color:yellow;font-size:12px;text-decoration: none;' href='#' onclick=\"deleteSensor('"+sensor_info['filename']+"');return false;\"> X</a>";
-    document.getElementById("sbattery").innerHTML = b + sensor_info['battery'] + "V";   
+
+    document.getElementById("scount").innerHTML =  sensor_info['count'] + " records  ";
+    document.getElementById("sbattery").innerHTML = b + sensor_info['mbattery'] + "V";   
 }
 
 
-function plotSensorData(){
+function plotDeviceData(){
   
-    if(sensor_category == GROUP_SWITCH) plotSensorDataMotion();
-    else if(sensor_category == GROUP_HT) plotSensorDataHT(); 
-    else if(sensor_category == GROUP_MOTION) plotSensorDataMotion();  
-    else if(sensor_category == GROUP_RELAY) plotSensorDataRelay();  
+    if(sensor_category == GROUP_SWITCH) plotDeviceDataMotion();
+    else if(sensor_category == GROUP_HT) plotDeviceDataHT(); 
+    else if(sensor_category == GROUP_MOTION) plotDeviceDataMotion();  
+    else if(sensor_category == GROUP_RELAY) plotDeviceDataRelay();   
+    else if(sensor_category == GROUP_MOISTURE) plotDeviceDataMoisture();  
+    else if(sensor_category == GROUP_TEMP) plotDeviceDataTemp(); 
+    else if(sensor_category == GROUP_VALVE) plotDeviceDataValve(); 
 }
 
-function plotSensorDataSwitch(){}
+function plotDeviceDataSwitch(){}
+function plotDeviceDataValve(){}
 
-function plotSensorDataHT(){
+function plotDeviceDataHT(){
 
   html = "<div class='row m-5 mb-0' style='margin-left: 0px;margin-right: 0px;'><div class='col-6 row' style='border-left-width: 0px;border-left-style: solid;margin-left: 0px;padding-right: 0px;margin-right: 0px;'>";
   for(var i=0; i<24;i++){
@@ -436,7 +532,49 @@ function plotSensorDataHT(){
 
 }
 
-function plotSensorDataMotion(){
+function plotDeviceDataMoisture(){
+
+html = "<div class='row m-5 mb-0' style='margin-left: 0px;margin-right: 0px;'><div class='col-6 row' style='border-left-width: 0px;border-left-style: solid;margin-left: 0px;padding-right: 0px;margin-right: 0px;'>";
+for(var i=0; i<24;i++){
+  if(sensor_data_array[i] != 0) t = sensor_data_array[i];
+  else t = "-";
+  html += "<div class='col-1' style='font-size:8px;padding-left:0!important;padding-right:0!important;'>"+t+"</div>";  
+  if(i==11)  html += "</div><div class='col-6 row' style='border-left-width: 0px;border-left-style: solid;padding-left: 0px;margin-left: 0px;margin-right: 0px;'>";
+}  
+html += "</div></div>"; 
+height = sensor_data_array["max"]-sensor_data_array["min"];
+if( height < 20) height = 20;
+html += "<div class='m-5 mb-0 mt-4'><svg id='svg' class='chart' viewBox='0 0 230 "+height+"'><polyline id='poly' fill='none' stroke='#d03535' stroke-width='0.5' points=''></polyline></svg></div>";
+html += "<div class='row m-5 mt-0' style='margin-left: 0px;margin-right: 0px;'><div class='col-6 row' style='border-left-width: 0px;border-left-style: solid;margin-left: 0px;padding-right: 0px;margin-right: 0px;'>";
+for(var i=0; i<24;i++){
+  html += "<div class='col-1' style='font-size:8px;padding-left:0!important;padding-right:0!important;'>"+(i)+":00</div>";  
+  if(i==11)  html += "</div><div class='col-6 row' style='border-left-width: 0px;border-left-style: solid;padding-left: 0px;margin-left: 0px;margin-right: 0px;'>";
+} 
+html += "</div></div>"; 
+document.getElementById("sgraph").innerHTML = html;
+var svg = document.getElementById('svg');
+var polyline= document.getElementById('poly');
+  for(var i=0; i<23;i++){
+    if( sensor_data_array[i] > 0 ){
+        point = svg.createSVGPoint();
+        if(i==23) point.x = i*10 - 5;
+        else point.x = parseInt(5+i*9.86);
+        point.y = sensor_data_array["max"] - sensor_data_array[i];
+        polyline.points.appendItem(point);
+    }
+    
+    if( true == false ){
+        if(i==23) point.x = i*10 - 5;
+        else point.x = parseInt(5+i*9.86);
+
+        if( sensor_data_array["max"]-sensor_data_array["min"] <= 5 ) point.y =  sensor_data_array["max"] - sensor_data_array[i] ;
+        else point.y = 20 / (sensor_data_array["max"]-sensor_data_array["min"] ) * ( sensor_data_array["max"] - sensor_data_array[i] );        
+      }
+  }
+
+}
+
+function plotDeviceDataMotion(){
   
   html = "<div class='row mt-5' style='margin-left: 0px;margin-right: 0px;'><div class='col-6 row' style='border-left-width: 0px;border-left-style: solid;margin-left: 0px;padding-right: 0px;margin-right: 0px;'>";
   for(var i=0; i<24;i++){
@@ -464,7 +602,7 @@ function plotSensorDataMotion(){
 }
 
 
-function plotSensorDataRelay(){
+function plotDeviceDataRelay(){
   
   html = "<div class='row mt-5' style='margin-left: 0px;margin-right: 0px;'><div class='col-6 row' style='border-left-width: 0px;border-left-style: solid;margin-left: 0px;padding-right: 0px;margin-right: 0px;'>";
   for(var i=0; i<24;i++){
@@ -491,18 +629,23 @@ function plotSensorDataRelay(){
   document.getElementById("sgraph").innerHTML = html;
 }
 
-function collectSensorData(item){
+function collectDeviceData(item){
 
-    if(sensor_category == GROUP_SWITCH) collectSensorDataMotion(item);
-    else if(sensor_category == GROUP_HT) collectSensorDataHT(item); 
-    else if(sensor_category == GROUP_MOTION) collectSensorDataMotion(item); 
-    else if(sensor_category == GROUP_RELAY) collectSensorDataRelay(item); 
+    if(sensor_category == GROUP_SWITCH) collectDeviceDataMotion(item);
+    else if(sensor_category == GROUP_HT) collectDeviceDataHT(item); 
+    else if(sensor_category == GROUP_MOTION) collectDeviceDataMotion(item); 
+    else if(sensor_category == GROUP_RELAY) collectDeviceDataRelay(item); 
+    else if(sensor_category == GROUP_MOISTURE) collectDeviceDataMoisture(item);  
+    else if(sensor_category == GROUP_TEMP) collectDeviceDataTemp(item);
+    else if(sensor_category == GROUP_VALVE) collectDeviceDataValve(item);
 }
 
-function collectSensorDataSwitch(item){}
-function collectSensorDataRelay(item){}
+function collectDeviceDataSwitch(item){}
+function collectDeviceDataValve(item){}
+function collectDeviceDataRelay(item){}
+function collectDeviceDataMoisture(item){}
 
-function collectSensorDataHT(item){
+function collectDeviceDataHT(item){
   
      const [ltimestamp,lcategory,lstatus,ltemperature,lhumidity,lbattery] = item.split(',');  
      if(!ltimestamp) return;
@@ -512,13 +655,30 @@ function collectSensorDataHT(item){
      var current_day = current_date.getDate();
      if(d.getDate() == current_day){
         tlocal = getFormatedTemperatureNoUnit(ltemperature,dunit);
+        hlocal = getFormatedTemperatureNoUnit(lhumidity,"%");
         sensor_data_array[d.getHours()] = tlocal;
         if( tlocal > sensor_data_array["max"]) sensor_data_array["max"] = tlocal;
         if( tlocal < sensor_data_array["min"]) sensor_data_array["min"] = tlocal;
      }  
 }
 
-function collectSensorDataMotion(item){
+function collectDeviceDataTemp(item){
+  
+  const [ltimestamp,lcategory,lstatus,ltemperature,lhumidity,lbattery] = item.split(',');  
+  if(!ltimestamp) return;
+
+  var d = new Date(ltimestamp*1000);
+  var current_date = new Date();
+  var current_day = current_date.getDate();
+  if(d.getDate() == current_day){
+     tlocal = getFormatedTemperatureNoUnit(ltemperature,dunit);
+     sensor_data_array[d.getHours()] = tlocal;
+     if( tlocal > sensor_data_array["max"]) sensor_data_array["max"] = tlocal;
+     if( tlocal < sensor_data_array["min"]) sensor_data_array["min"] = tlocal;
+  }  
+}
+
+function collectDeviceDataMotion(item){
 
      const [ltimestamp,lcategory,lstatus,ltemperature,lhumidity,lbattery] = item.split(',');  
      if(!ltimestamp) return;
@@ -552,7 +712,7 @@ function getFormatedDuration(stimestamp){
     if( m == 1 ) return m + " minute ago";
     else return m + " minutes ago";    
   }
-  if( duration == 1) return duration + " second ago";  
+  if( duration < 60) return duration + " second ago";  
   else return duration + " seconds ago"; 
 }
 
@@ -580,8 +740,10 @@ function cursorLoading(){
 
 function cursorDone(){
   document.body.style.cursor = 'default';
-}           
-    </script> 
-       <script src="main.js?v=12"></script><script>loadSensorsName();loadSensors();</script>
+}      
+
+   
+</script>
+       <script src="main.js?v=14"></script><script>loadDevicesName();loadDevices();</script>
     </html>
   

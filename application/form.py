@@ -21,13 +21,18 @@ class DeviceDataForm(FlaskForm):
                                 choices=[('1','Switch'),
                                         ('2', 'HT sensor'),
                                         ('3', 'Motion'),
-                                        ('4', 'Relay')])
+                                        ('4', 'Relay'),
+                                        ('5', 'Moisture'),
+                                        ('6', 'Temperature'),
+                                        ('7', 'Valve')])
 
-    network_id = IntegerField('Network ID', validators = [DataRequired()])  
+    network_id = IntegerField('Network ID')  
     device_id = IntegerField('Device ID')  
     status = IntegerField('Status')  
     temperature = FloatField('Temperature', validators = [DataRequired()]) 
     humidity = FloatField('Humidity', validators = [DataRequired()])
-    battery = FloatField('Battery', validators = [DataRequired()])   
+    mbattery = FloatField('MainBattery')
+    battery = FloatField('Battery', validators = [DataRequired()])  
+    rssi = FloatField('RSSI')     
 
     submit = SubmitField('Update device')                         

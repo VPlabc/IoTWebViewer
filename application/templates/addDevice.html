@@ -86,6 +86,32 @@
                         {{ form.battery(class="form-control form-control-sm") }}
                         {% endif %}
                     </div>
+                    <div class="form-group">
+                        {{ form.mbattery.label(class="form-control-label") }}
+                        {% if form.mbattery.errors %}
+                        {{ form.mbattery(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.mbattery.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.mbattery(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.rssi.label(class="form-control-label") }}
+                        {% if form.rssi.errors %}
+                        {{ form.rssi(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.rssi.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.rssi(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
 
             
                     <div class="form-group">
