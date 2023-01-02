@@ -1,0 +1,131 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="col-xs-10 col-sm-6 col-md-6">
+    <h2>Setting</h2>
+    <div class="card card-style mb-2">
+        <div class="card-body">
+            <form action="" method="POST">
+                {{ form.csrf_token() }}
+                <fieldset class="form-group">
+                    <legend class="mb-4">Device and config</legend>
+                    <div class="form-group">
+                        {{ form.network_id.label(class="form-control-label") }}
+                        {% if form.network_id.errors %}
+                        {{ form.network_id(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.network_id.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.network_id(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.device_id.label(class="form-control-label") }}
+                        {% if form.device_id.errors %}
+                        {{ form.device_id(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.device_id.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.device_id(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.status.label(class="form-control-label") }}
+                        {% if form.status.errors %}
+                        {{ form.status(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.status.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.status(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.temperature.label(class="form-control-label") }}
+                        {% if form.temperature.errors %}
+                        {{ form.temperature(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.temperature.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.temperature(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.humidity.label(class="form-control-label") }}
+                        {% if form.humidity.errors %}
+                        {{ form.humidity(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.humidity.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.humidity(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.battery.label(class="form-control-label") }}
+                        {% if form.battery.errors %}
+                        {{ form.battery(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.battery.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.battery(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.mbattery.label(class="form-control-label") }}
+                        {% if form.mbattery.errors %}
+                        {{ form.mbattery(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.mbattery.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.mbattery(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ form.rssi.label(class="form-control-label") }}
+                        {% if form.rssi.errors %}
+                        {{ form.rssi(class="form-control form-control-sm is-invalid") }}
+                        {% for error in form.rssi.errors %}
+                        <div class="invalid-feedback">
+                            <span>{{error}}</span>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        {{ form.rssi(class="form-control form-control-sm") }}
+                        {% endif %}
+                    </div>
+
+            
+                    <div class="form-group">
+                        {{ form.category.label(class = "form-control-label") }}
+                        {{ form.category(class = "form-control form-control-sm") }}
+                    </div>
+            
+                    <div class="form-group border-bottom pb-3">
+                        {{ form.submit(class="btn btn-outline-info")}}
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+    
+{% endblock %}

@@ -25,7 +25,7 @@ class DeviceDataForm(FlaskForm):
                                         ('5', 'Moisture'),
                                         ('6', 'Temperature'),
                                         ('7', 'Valve')])
-
+    
     network_id = IntegerField('Network ID')  
     device_id = IntegerField('Device ID')  
     status = IntegerField('Status')  

@@ -29,7 +29,6 @@ reciver_stt = 1
 mqtt_client.subscribe(topic) # subscribe topic
 
 def save():     
-    print(f'{msg.device_id}, {msg.network_id}, {msg.category}, {msg.status}, {msg.temperature}, {msg.humidity}, {msg.mbattery}, {msg.battery}, {msg.rssi}')
     epoch_time = int(time.time())
     new_sensor_found = False
     list_lenght = 0
@@ -37,32 +36,25 @@ def save():
     try:
         for deviceID in list_deviceID:
             list_lenght = list_lenght + 1
-            # print("ID" + str(deviceID.device))
+            print(deviceID.device)
             if msg.device_id == deviceID.device:
                 new_sensor_found = True
     except Exception as e:
         print(e)
     if new_sensor_found == False:
-        # print(f'New Device')
         updateparameter = Parameters.query.get_or_404(1)
         updateparameter.devices = list_lenght + 1
         # print("update parameters")
         # db.session.commit()
-
-        # print(f'ADD Device {msg.device_id}')
-        # try:
         deviceID = device_list(device=msg.device_id)
         db.session.add(deviceID)
-        # db.session.commit()    
-        # except Exception as e:
-        #     print(e)
-        # flash(f'New Device {msg.device_id}','success')
-    # epoch_time = epoch_time + 1
-    print("data logging")
+        flash(f'New Device {msg.device_id}','success')
+        # sensors_saved = sensors_saved + 1
+
     entrys = DeviceLog(date=epoch_time, device_id=msg.device_id, category=msg.category  , status=msg.status , temperature=msg.temperature , humidity=msg.humidity, mbattery=msg.mbattery, battery=msg.battery, rssi=msg.rssi)
     db.session.add(entrys)
     db.session.commit()
-    time.sleep(0.75)
+
     # print("update device log")
     # flash(f"ID {msg.device_id} has been added", "success")
     # print(f"ID {msg.device_id} has been added")
@@ -85,8 +77,8 @@ def handle_connect(client, userdata, flags, rc):
        
 @mqtt_client.on_log()
 def handle_logging(client, userdata, level, buf):
-    # print(level, buf)
-    pass
+    print(level, buf)
+
 
 
 @mqtt_client.on_message()
@@ -96,12 +88,12 @@ def handle_mqtt_message(client, userdata, message):
         topic=message.topic,
         payload=message.payload.decode()
     )
-    # print("payload: " + str(data))
+    print("payload: " + str(data))
     jsonData = json.dumps(data)
     # print("payload: " + jsonData)
     DataParse = json.loads(str(jsonData))
     payload_ = DataParse["payload"]
-    # print("payload: " + payload_)
+    print("payload: " + payload_)
     # jsonPayload = json.dumps(str(payload_))
     PayloadParse = json.loads(str(payload_))
     # {
@@ -265,13 +257,13 @@ def loadData():
         list_lenght = list_lenght + 1
         # print("Device ID:" + str(deviceID.device))
         ids = 0
-        try:
-            data = DeviceLog.query.filter(DeviceLog.device_id == deviceID.device).all()
-            for datas in data:
-                ids = ids + 1
-            list_Device.append(sensors(datas.device_id,datas.category,datas.status,datas.temperature,datas.humidity,datas.battery,datas.mbattery,datas.date,datas.rssi))
-        except:
-            print('ID not found')    
+        # try:
+        data = DeviceLog.query.filter(DeviceLog.device_id == deviceID.device).all()
+        for datas in data:
+            ids = ids + 1
+        list_Device.append(sensors(datas.device_id,datas.category,datas.status,datas.temperature,datas.humidity,datas.battery,datas.mbattery,datas.date,datas.rssi))
+        # except:
+        #     print('ID not found')    
     #end load data
 loadData()
 

@@ -15,7 +15,8 @@
     <!-- Bootstrap CSS -->
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
-
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     <!-- <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.css')}}"> -->
     <!-- <link rel="stylesheet" href="bootstrap.css"> -->
     <!-- <link rel="stylesheet" href="main.css?v=7"> -->
@@ -85,8 +86,31 @@
        </p>
        <div id="mqtt_alert" role="alert" class="alert alert-danger mb-4 d-none">The hub is not connected to the MQTT server</div>
        <div class="row row-cols-4 row-cols-md-6 row-cols-lg-8 row-cols-xl-5 text-center" id="lista"><div class="col-12 mt-5" style="width:100%!important;text-align:center;color:#cccccc;">loading ...</div></div>
-       <div class="row text-center" id="listh"></div> 
+       
+        <!-- Trigger the modal with a button -->
+      
+        <!-- Modal -->
+        <div class="modal fade" id="myModal" role="dialog">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Modal Header</h4>
+              </div>
+              <div class="modal-body">
+                <p>This is a large modal.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="row text-center" id="listh"></div> 
+       
     </main>
+    
     </body>
     <script>
         dunit = 0;
@@ -109,7 +133,8 @@ sensors_name = [];
 
 var reloadPeriod = 5000;
 var running = true;
-    
+
+
 function loadDevices() {
   
   getSystemStatus();
@@ -325,9 +350,27 @@ function AddDeviceBlock(item){
       // if(scategory==4 && sstatus == 0) html += "<div class='col'><button type='button' class='btn btn-warning' onclick=\"changeState('"+sid+"/1')\">ON</button></div>";
     
      html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' onclick=\"loadDevice('"+sid+"')\"><h6><small>" + iconHistory + " View</small></h6></button></div>";
-     html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' ><h6><small>" + iconSetting + " Setting</small></h6></button></div>";
+     html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' data-toggle='modal' data-target='#exampleModal'><h6><small>" + iconSetting + " Setting</small></h6></button></div>";
      
      html += "   </div></div></div>";
+     html += "<div class='modal fade' id='exampleModal' tabindex='-1' role='dialog' aria-labelledby='exampleModalLabel' aria-hidden='true'>\
+        <div class='modal-dialog' role='document'>\
+          <div class='modal-content'>\
+            <div class='modal-header'>\
+              <h5 class='modal-title' id='exampleModalLabel'>Modal title</h5>\
+              <button type='button' class='close' data-dismiss='modal' aria-label='Close'>\
+                <span aria-hidden='true'>&times;</span>\
+              </button>\
+            </div>\
+            <div class='modal-body'>\
+            </div>\
+            <div class='modal-footer'>\
+              <button type='button' class='btn btn-secondary' data-dismiss='modal'>Close</button>\
+              <button type='button' class='btn btn-primary'>Save changes</button>\
+            </div>\
+          </div>\
+        </div>\
+      </div>";
      document.getElementById("lista").innerHTML += html; 
 }
 
@@ -744,6 +787,6 @@ function cursorDone(){
 
    
 </script>
-       <script src="main.js?v=14"></script><script>loadDevicesName();loadDevices();</script>
+       <script src="main.js?v=15"></script><script>loadDevicesName();loadDevices();</script>
     </html>
   

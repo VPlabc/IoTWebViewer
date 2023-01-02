@@ -9,7 +9,7 @@ app.config['SECRET_KEY'] = "JLKJJJO3IURYoiouolnojojouuoo=5y9y9youjuy952oohhbafdn
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///expenseDB.db'
 
 db = SQLAlchemy(app)
-
+app.app_context().push()
 
 
 from application import routes
