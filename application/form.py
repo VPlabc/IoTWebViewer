@@ -16,23 +16,12 @@ class UserDataForm(FlaskForm):
     amount = IntegerField('Amount', validators = [DataRequired()])                                   
     submit = SubmitField('Generate Report')      
 
-class DeviceDataForm(FlaskForm):
-    category = SelectField('Category', validators=[DataRequired()],
-                                choices=[('1','Switch'),
-                                        ('2', 'HT sensor'),
-                                        ('3', 'Motion'),
-                                        ('4', 'Relay'),
-                                        ('5', 'Moisture'),
-                                        ('6', 'Temperature'),
-                                        ('7', 'Valve')])
-    
-    network_id = IntegerField('Network ID')  
-    device_id = IntegerField('Device ID')  
-    status = IntegerField('Status')  
-    temperature = FloatField('Temperature', validators = [DataRequired()]) 
-    humidity = FloatField('Humidity', validators = [DataRequired()])
-    mbattery = FloatField('MainBattery')
-    battery = FloatField('Battery', validators = [DataRequired()])  
-    rssi = FloatField('RSSI')     
+class DeviceDataForm(FlaskForm):    
+    network_id = IntegerField('Network ID', validators=[DataRequired()])  
+    mqtt_broker = StringField('MQTT Broker', validators=[DataRequired()])  
+    mqtt_port = StringField('MQTT port', validators=[DataRequired()])   
+    mqtt_user = StringField('MQTT user')   
+    mqtt_pass = StringField('MQTT pass')  
+  
 
-    submit = SubmitField('Update device')                         
+    submit = SubmitField('Update configuration')                         

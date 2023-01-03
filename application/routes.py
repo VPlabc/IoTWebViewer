@@ -1,7 +1,7 @@
-from application import app
+from application import app, socketio
 from flask import render_template, request, url_for, redirect,flash, get_flashed_messages, jsonify,copy_current_request_context
 from application.form import UserDataForm, DeviceDataForm
-from application.models import IncomeExpenses, DeviceLog, Parameters, device_list
+from application.models import IncomeExpenses, DeviceLog, Parameters, device_list,MQTT_Parameter
 from application import db
 from werkzeug.utils import secure_filename
 import json
@@ -10,17 +10,39 @@ import os
 from flask_mqtt import Mqtt
 import threading
 
-app.config['MQTT_BROKER_URL'] = 'test.mosquitto.org';#'broker.emqx.io'
-app.config['MQTT_BROKER_PORT'] = 1883
-app.config['MQTT_USERNAME'] = ''  # Set this item when you need to verify username and password
-app.config['MQTT_PASSWORD'] = ''  # Set this item when you need to verify username and password
-app.config['MQTT_KEEPALIVE'] = 10  # Set KeepAlive time in seconds
-app.config['MQTT_TLS_ENABLED'] = False  # If your server supports TLS, set it True
+def update_mqtt():
+    x = db.session.query(MQTT_Parameter).first() 
+    print('\n')
+    print('\n')
+    print('\n')
+    user = ""
+    if x.mqtt_user == '_':
+        user = ""
+    else:
+        user = x.mqtt_user
+    password = ""
+    if x.mqtt_pass == '_':
+        password = ""
+    else:
+        password = x.mqtt_pass
+    print(x.mqtt_host, x.mqtt_port,user, password)
+    print('\n')
+    print('\n')
+    app.config['MQTT_BROKER_URL'] = x.mqtt_host#'broker.emqx.io'
+    app.config['MQTT_BROKER_PORT'] = x.mqtt_port
+    app.config['MQTT_USERNAME'] = user  # Set this item when you need to verify username and password
+    app.config['MQTT_PASSWORD'] = password  # Set this item when you need to verify username and password
+    app.config['MQTT_KEEPALIVE'] = 10  # Set KeepAlive time in seconds
+    app.config['MQTT_TLS_ENABLED'] = False  # If your server supports TLS, set it True
+update_mqtt()
+
 topic = '/stat/vplab/update'
 Status_topic = '/stat/vplab/status'
 Control_topic = '/stat/vplab/control'
+Setting_topic = '/stat/vplab/setting'
 
 mqtt_client = Mqtt(app)
+
 mqtt_stt = 1
 sd_stt = 0
 reciver_stt = 1
@@ -42,7 +64,7 @@ def save():
                 new_sensor_found = True
     except Exception as e:
         print(e)
-    if new_sensor_found == False:
+    if new_sensor_found == False and msg.rssi < 100:
         # print(f'New Device')
         updateparameter = Parameters.query.get_or_404(1)
         updateparameter.devices = list_lenght + 1
@@ -59,10 +81,11 @@ def save():
         # flash(f'New Device {msg.device_id}','success')
     # epoch_time = epoch_time + 1
     print("data logging")
+    socketio.emit('mqtt_feedback', data="OK")
     entrys = DeviceLog(date=epoch_time, device_id=msg.device_id, category=msg.category  , status=msg.status , temperature=msg.temperature , humidity=msg.humidity, mbattery=msg.mbattery, battery=msg.battery, rssi=msg.rssi)
     db.session.add(entrys)
     db.session.commit()
-    time.sleep(0.75)
+    time.sleep(2)
     # print("update device log")
     # flash(f"ID {msg.device_id} has been added", "success")
     # print(f"ID {msg.device_id} has been added")
@@ -71,7 +94,19 @@ def save():
     #     print("save error")
 
 
+#__________ Socket
+@socketio.on('NodeSetting')
+def handle_publish(json_str):
+    data = json.loads(json_str)
+    print(data)
+    socketio.emit('mqtt_feedback', data="OK")
+    mqtt_client.publish(Setting_topic,str(data))
 
+
+# @socketio.on('subscribe')
+# def handle_subscribe(json_str):
+#     data = json.loads(json_str)
+#     mqtt_client.subscribe(data['topic'])
 #__________ MQTT 
 @mqtt_client.on_connect()
 def handle_connect(client, userdata, flags, rc):
@@ -96,6 +131,7 @@ def handle_mqtt_message(client, userdata, message):
         topic=message.topic,
         payload=message.payload.decode()
     )
+    socketio.emit('mqtt_message', data=data)
     # print("payload: " + str(data))
     jsonData = json.dumps(data)
     # print("payload: " + jsonData)
@@ -132,6 +168,7 @@ def handle_mqtt_message(client, userdata, message):
 @mqtt_client.on_disconnect()
 def handle_disconnect():
     print("CLIENT DISCONNECTED")
+    mqtt_stt = 0
 
 @app.route('/publish', methods=['POST'])
 def publish_message():
@@ -148,6 +185,8 @@ def publish_message():
 
 @app.route('/')
 def index():
+    update_mqtt()
+    mqtt_client._connect()
     return redirect(url_for('sen'))
 
 @app.route('/statup')
@@ -389,9 +428,43 @@ def names():
         return "file not found!!! \n" + out
 
 
-@app.route('/sen')
+@app.route('/sen', methods = ["POST", "GET"])
 def sen():
+    form = DeviceDataForm()
+    if form.validate_on_submit():
+        network_id = int(form.network_id.data)
+        mqtt_broker = form.mqtt_broker.data
+        mqtt_port = form.mqtt_port.data
+        mqtt_user = form.mqtt_user.data
+        mqtt_pass = form.mqtt_pass.data
+        print("Networrk ID:" + str(network_id))
+        print("MQTT host:" + str(mqtt_broker))
+        print("MQTT port:" + str(mqtt_port))
+        print("MQTT user:" + str(mqtt_user))
+        print("MQTT pass:" + str(mqtt_pass))
+
+        # try:
+        db.session.query(MQTT_Parameter).filter(MQTT_Parameter.id== 1).update({
+            MQTT_Parameter.mqtt_host:mqtt_broker,
+            MQTT_Parameter.mqtt_netid:network_id,
+            MQTT_Parameter.mqtt_port:mqtt_port,
+            MQTT_Parameter.mqtt_user:mqtt_user,
+            MQTT_Parameter.mqtt_pass:mqtt_pass,
+            MQTT_Parameter.mqtt_keepalive:5,
+            MQTT_Parameter.mqtt_tls_enable:0
+            }, synchronize_session = False)
+        db.session.commit()
+        print("update MQTT parameters")
+        # except:
+        #     print("update MQTT parameters failed")
+        #     c1 = MQTT_Parameter(mqtt_host = mqtt_broker,mqtt_netid = network_id, mqtt_port = mqtt_port,mqtt_user = mqtt_user,mqtt_pass = mqtt_pass, mqtt_keepalive = 5 ,mqtt_tls_enable = 0)
+        #     db.session.add(c1)
+        #     db.session.commit()
+        #     print("add MQTT parameters")
+        return render_template('device.html')
+        # return redirect(url_for('sen'))
     try:
+        # mqtt_client._connect()
         return render_template('device.html')
     except:
         print("Error")
@@ -400,32 +473,22 @@ def sen():
 
 
 @app.route('/config', methods = ["POST", "GET"])
-def add_device():
+def device_setting():
     form = DeviceDataForm()
-    if form.validate_on_submit():
-
-        msg.device_id = form.device_id.data
-        msg.network_id = form.network_id.data
-        msg.category = int(form.category.data)
-        msg.status = form.status.data
-        msg.temperature = form.temperature.data
-        msg.humidity = form.humidity.data
-        msg.mbattery = form.mbattery.data
-        msg.battery = form.battery.data
-        msg.rssi = form.rssi.data
-        print("ID:" + str(msg.device_id))
-        print("Net:" + str(msg.network_id))
-        print("Cat:" + str(msg.category))
-        print("Status:" + str(msg.status))
-        print("temp:" + str(msg.temperature))
-        print("humidity:" + str(msg.humidity))
-        print("mBat:" + str(msg.mbattery))
-        print("Bat:" + str(msg.battery))
-        print("RSSI:" + str(msg.rssi))
-        
-        save()  
-        return redirect(url_for('add_device'))
-    return render_template('addDevice.html', title="Add device", form=form)
+    try:
+        x = db.session.query(MQTT_Parameter).first() 
+        form.network_id.data = 1
+        form.mqtt_broker.data = x.mqtt_host
+        form.mqtt_port.data = x.mqtt_port
+        form.mqtt_user.data = x.mqtt_user
+        form.mqtt_pass.data = x.mqtt_pass
+    except:
+        c1 = MQTT_Parameter(mqtt_host = "test.mosquitto.org",mqtt_port = 1883,mqtt_user = "_",mqtt_pass = "_", mqtt_keepalive = 5)
+        db.session.add(c1)
+        db.session.commit()
+        print("add MQTT parameters")
+        return redirect(url_for('sen'))
+    return render_template('DeviceSetting.html', title="Device Setting", form=form)
 
 # out = os.path.dirname(os.path.abspath(__file__))
 # UPLOAD_FOLDER = out + '/static/upload'

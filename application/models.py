@@ -62,15 +62,17 @@ def __init__(self, id, devices):
 
 class MQTT_Parameter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    mqtt_netid = db.Column(db.Integer, nullable=True)
     mqtt_host = db.Column(db.String, nullable= True)
     mqtt_port = db.Column(db.Integer, nullable= True)
     mqtt_user = db.Column(db.String, nullable= True)
     mqtt_pass = db.Column(db.String, nullable= True)
     mqtt_keepalive = db.Column(db.Integer, nullable= True)
-    mqtt_tls_enable = db.Column(db.Integer, nullable= False)
+    mqtt_tls_enable = db.Column(db.Integer, nullable= True)
 
-def __init__(self, id, mqtt_host, mqtt_port, mqtt_user, mqtt_pass, mqtt_keepalive, mqtt_tls_enable):
+def __init__(self, id, mqtt_netid, mqtt_host, mqtt_port, mqtt_user, mqtt_pass, mqtt_keepalive, mqtt_tls_enable):
    self.id = id
+   self.mqtt_netid = mqtt_netid
    self.mqtt_host = mqtt_host
    self.mqtt_port = mqtt_port
    self.mqtt_user = mqtt_user

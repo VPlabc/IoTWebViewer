@@ -15,8 +15,12 @@
     <!-- Bootstrap CSS -->
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"> -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.1/dist/jquery.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    
     <!-- <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.css')}}"> -->
     <!-- <link rel="stylesheet" href="bootstrap.css"> -->
     <!-- <link rel="stylesheet" href="main.css?v=7"> -->
@@ -54,21 +58,23 @@
             </svg>
           </span>
         </a>
-        <span class="fs-4 "  onclick="loadDevices();return false;">Device</span>
-        <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto ">
-        <span class="me-3 py-2 me-4 text-danger" id="rota_status"></span>
-          <span class="me-3 py-2 text-dark text-decoration-none d-none"  style="cursor:pointer;" onclick="recheckSDCard();return false;" id="sdcard_status">
-               <svg viewBox="0 0 24 24" style="width:16px;height:16px;color: #df1919;">
-                  <path fill="currentColor" d="M8,2A2,2 0 0,0 6,4V11L4,13V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V4A2,2 0 0,0 18,2H8M9,4H11V8H9V4M12,4H14V8H12V4M15,4H17V8H15V4Z"></path>
-              </svg>
-          </span>
-          <a class="me-3 py-2 text-dark text-decoration-none" href="/config">
-               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
-                <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
-              </svg>
-          </a>
-        </nav>
+        <span class="fs-4 flex-column flex-md-row align-items-center col-sm-1 col-md-8  col-lg-9 col-lx-11"  onclick="loadDevices(0);return false;">Device</span>
+        <span class="fs-4 flex-column flex-md-row align-items-center">
+          <!-- <nav class="d-inline-flex mt-2 mt-md-0 ms-md-auto  align-items-baseline "> -->
+            <span class="me-3 py-2 me-4 text-danger col-12 col-md-4 col-ms-3" id="rota_status"></span>
+            <span class="me-3 py-2 text-dark text-decoration-none d-none col-12 col-md-4 col-ms-3"  style="cursor:pointer;" onclick="recheckSDCard();return false;" id="sdcard_status">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;color: #df1919;">
+                    <path fill="currentColor" d="M8,2A2,2 0 0,0 6,4V11L4,13V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V4A2,2 0 0,0 18,2H8M9,4H11V8H9V4M12,4H14V8H12V4M15,4H17V8H15V4Z"></path>
+                </svg>
+            </span>
+            <a class="me-3 py-2 text-dark text-decoration-none col-12 col-md-4 col-ms-3" onclick="loadConfig();">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+                  <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                  <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+                </svg>
+            </a>
+          <!-- </nav> -->
+      </span>
       </div>
     </header>
     
@@ -85,30 +91,30 @@
         {% endwith %}
        </p>
        <div id="mqtt_alert" role="alert" class="alert alert-danger mb-4 d-none">The hub is not connected to the MQTT server</div>
+       <input type='checkbox' class='form-check-input' id='alert' name='alert' value='checked' onclick="ShowAlert(this)"/>Alert</div></div></br>
+       <div class="alert alert-success alert-dismissible fade show" role="alert" id="SettingAlert" style="display:none">
+        <strong>Setting update</strong> Success
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
        <div class="row row-cols-4 row-cols-md-6 row-cols-lg-8 row-cols-xl-5 text-center" id="lista"><div class="col-12 mt-5" style="width:100%!important;text-align:center;color:#cccccc;">loading ...</div></div>
-       
-        <!-- Trigger the modal with a button -->
-      
-        <!-- Modal -->
-        <div class="modal fade" id="myModal" role="dialog">
-          <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-              <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Modal Header</h4>
-              </div>
-              <div class="modal-body">
-                <p>This is a large modal.</p>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-              </div>
-            </div>
-          </div>
+       <!-- <div class="form-group">
+        <label class="control-label col-xs-4">Message Send: </label>
+        <div class="col-xs-8">
+          <input id="message" class="form-control">
         </div>
+      </div> -->
+       <!-- <div class="form-group">
+        <label class="control-label col-xs-4">Messages Recive:</label>
+        <div class="col-xs-8">
+          <textarea id="subscribe_messages" class="form-control" rows=10></textarea>
+        </div>
+      </div> -->
+
         
         <div class="row text-center" id="listh"></div> 
-       
+
     </main>
     
     </body>
@@ -133,10 +139,12 @@ sensors_name = [];
 
 var reloadPeriod = 5000;
 var running = true;
+var socket = io.connect('http://' + document.domain + ':' + location.port);
 
 
-function loadDevices() {
-  
+function loadDevices(a) {
+   if(a == 1) {running = false;}
+   if(a == 0) {running = true;
   getSystemStatus();
   if( document.getElementById("lista").innerHTML == "") return;
   const xhttp = new XMLHttpRequest();
@@ -151,10 +159,10 @@ function loadDevices() {
       sensors.forEach( function(item) {
         AddDeviceBlock(item);
       });
-
     }else{
       document.getElementById("lista").innerHTML = "<div class='pt-3 text-center' style='width:100%!important'><p>No sensors have been detected.</p></div>";
     }
+  }
   }
 }
 // function run(){if(!running){running = true; loadDevices(); }}
@@ -207,7 +215,7 @@ function recheckSDCard(id){
   xhttp.onload = function() {
     if(this.responseText == "1"){
       getSystemStatus();
-      loadDevices();
+      loadDevices(0);
     }
   }
 }
@@ -280,7 +288,7 @@ function AddDeviceBlock(item){
      if(!sid) return;
      
      var perc = (sbattery - 3.3) / 0.006 | 0; 
-          
+     categoryname = "";    
      s = "";
      if(scategory==0) s = "view history"; 
      if(scategory==1 && sstatus == 1)   s = "OPEN"; 
@@ -311,20 +319,21 @@ function AddDeviceBlock(item){
      if(mbattery < 11.5) bgc = "text-danger";
      else bgc = "";
 
-     if(scategory==1)       icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-door-closed' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M3 2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v13h1.5a.5.5 0 0 1 0 1h-13a.5.5 0 0 1 0-1H3V2zm1 13h8V2H4v13z'/><path d='M9 9a1 1 0 1 0 2 0 1 1 0 0 0-2 0z'/></svg>";  
-     else if(scategory==2){  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";
+     if(scategory==1){ categoryname = "Switch";      icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-door-closed' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M3 2a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v13h1.5a.5.5 0 0 1 0 1h-13a.5.5 0 0 1 0-1H3V2zm1 13h8V2H4v13z'/><path d='M9 9a1 1 0 1 0 2 0 1 1 0 0 0-2 0z'/></svg>";  }
+     else if(scategory==2){ categoryname = "DHT Sensor"; icon = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";
                              icon1 = "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='currentColor' class='bi bi-droplet' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M7.21.8C7.69.295 8 0 8 0c.109.363.234.708.371 1.038.812 1.946 2.073 3.35 3.197 4.6C12.878 7.096 14 8.345 14 10a6 6 0 0 1-12 0C2 6.668 5.58 2.517 7.21.8zm.413 1.021A31.25 31.25 0 0 0 5.794 3.99c-.726.95-1.436 2.008-1.96 3.07C3.304 8.133 3 9.138 3 10a5 5 0 0 0 10 0c0-1.201-.796-2.157-2.181-3.7l-.03-.032C9.75 5.11 8.5 3.72 7.623 1.82z'/><path fill-rule='evenodd' d='M4.553 7.776c.82-1.641 1.717-2.753 2.093-3.13l.708.708c-.29.29-1.128 1.311-1.907 2.87l-.894-.448z'/></svg>";  
      }
-     else if(scategory==3)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-walk' style='margin-top:-8px' viewBox='0 0 320 512 '><path d='M208 96c26.5 0 48-21.5 48-48S234.5 0 208 0s-48 21.5-48 48 21.5 48 48 48zm94.5 149.1l-23.3-11.8-9.7-29.4c-14.7-44.6-55.7-75.8-102.2-75.9-36-.1-55.9 10.1-93.3 25.2-21.6 8.7-39.3 25.2-49.7 46.2L17.6 213c-7.8 15.8-1.5 35 14.2 42.9 15.6 7.9 34.6 1.5 42.5-14.3L81 228c3.5-7 9.3-12.5 16.5-15.4l26.8-10.8-15.2 60.7c-5.2 20.8.4 42.9 14.9 58.8l59.9 65.4c7.2 7.9 12.3 17.4 14.9 27.7l18.3 73.3c4.3 17.1 21.7 27.6 38.8 23.3 17.1-4.3 27.6-21.7 23.3-38.8l-22.2-89c-2.6-10.3-7.7-19.9-14.9-27.7l-45.5-49.7 17.2-68.7 5.5 16.5c5.3 16.1 16.7 29.4 31.7 37l23.3 11.8c15.6 7.9 34.6 1.5 42.5-14.3 7.7-15.7 1.4-35.1-14.3-43zM73.6 385.8c-3.2 8.1-8 15.4-14.2 21.5l-50 50.1c-12.5 12.5-12.5 32.8 0 45.3s32.7 12.5 45.2 0l59.4-59.4c6.1-6.1 10.9-13.4 14.2-21.5l13.5-33.8c-55.3-60.3-38.7-41.8-47.4-53.7l-20.7 51.5z'></path></svg>";
-     else if(scategory==4)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-lightbulb' viewBox='0 0 16 16'><path d='M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z'/></svg>";
-     else if(scategory==5)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-moisture' viewBox='0 0 16 16'><path d='M13.5 0a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V7.5h-1.5a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V15h-1.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 .5-.5V.5a.5.5 0 0 0-.5-.5h-2zM7 1.5l.364-.343a.5.5 0 0 0-.728 0l-.002.002-.006.007-.022.023-.08.088a28.458 28.458 0 0 0-1.274 1.517c-.769.983-1.714 2.325-2.385 3.727C2.368 7.564 2 8.682 2 9.733 2 12.614 4.212 15 7 15s5-2.386 5-5.267c0-1.05-.368-2.169-.867-3.212-.671-1.402-1.616-2.744-2.385-3.727a28.458 28.458 0 0 0-1.354-1.605l-.022-.023-.006-.007-.002-.001L7 1.5zm0 0-.364-.343L7 1.5zm-.016.766L7 2.247l.016.019c.24.274.572.667.944 1.144.611.781 1.32 1.776 1.901 2.827H4.14c.58-1.051 1.29-2.046 1.9-2.827.373-.477.706-.87.945-1.144zM3 9.733c0-.755.244-1.612.638-2.496h6.724c.395.884.638 1.741.638 2.496C11 12.117 9.182 14 7 14s-4-1.883-4-4.267z'/></svg>";
-     else if(scategory==6)  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";
+     else if(scategory==3){categoryname = "Motion sensor";  icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-walk' style='margin-top:-8px' viewBox='0 0 320 512 '><path d='M208 96c26.5 0 48-21.5 48-48S234.5 0 208 0s-48 21.5-48 48 21.5 48 48 48zm94.5 149.1l-23.3-11.8-9.7-29.4c-14.7-44.6-55.7-75.8-102.2-75.9-36-.1-55.9 10.1-93.3 25.2-21.6 8.7-39.3 25.2-49.7 46.2L17.6 213c-7.8 15.8-1.5 35 14.2 42.9 15.6 7.9 34.6 1.5 42.5-14.3L81 228c3.5-7 9.3-12.5 16.5-15.4l26.8-10.8-15.2 60.7c-5.2 20.8.4 42.9 14.9 58.8l59.9 65.4c7.2 7.9 12.3 17.4 14.9 27.7l18.3 73.3c4.3 17.1 21.7 27.6 38.8 23.3 17.1-4.3 27.6-21.7 23.3-38.8l-22.2-89c-2.6-10.3-7.7-19.9-14.9-27.7l-45.5-49.7 17.2-68.7 5.5 16.5c5.3 16.1 16.7 29.4 31.7 37l23.3 11.8c15.6 7.9 34.6 1.5 42.5-14.3 7.7-15.7 1.4-35.1-14.3-43zM73.6 385.8c-3.2 8.1-8 15.4-14.2 21.5l-50 50.1c-12.5 12.5-12.5 32.8 0 45.3s32.7 12.5 45.2 0l59.4-59.4c6.1-6.1 10.9-13.4 14.2-21.5l13.5-33.8c-55.3-60.3-38.7-41.8-47.4-53.7l-20.7 51.5z'></path></svg>";}
+     else if(scategory==4){  categoryname = "Relay";icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-lightbulb' viewBox='0 0 16 16'><path d='M2 6a6 6 0 1 1 10.174 4.31c-.203.196-.359.4-.453.619l-.762 1.769A.5.5 0 0 1 10.5 13a.5.5 0 0 1 0 1 .5.5 0 0 1 0 1l-.224.447a1 1 0 0 1-.894.553H6.618a1 1 0 0 1-.894-.553L5.5 15a.5.5 0 0 1 0-1 .5.5 0 0 1 0-1 .5.5 0 0 1-.46-.302l-.761-1.77a1.964 1.964 0 0 0-.453-.618A5.984 5.984 0 0 1 2 6zm6-5a5 5 0 0 0-3.479 8.592c.263.254.514.564.676.941L5.83 12h4.342l.632-1.467c.162-.377.413-.687.676-.941A5 5 0 0 0 8 1z'/></svg>";}
+     else if(scategory==5){  categoryname = "Moisture sensor";icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-moisture' viewBox='0 0 16 16'><path d='M13.5 0a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V7.5h-1.5a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V15h-1.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 .5-.5V.5a.5.5 0 0 0-.5-.5h-2zM7 1.5l.364-.343a.5.5 0 0 0-.728 0l-.002.002-.006.007-.022.023-.08.088a28.458 28.458 0 0 0-1.274 1.517c-.769.983-1.714 2.325-2.385 3.727C2.368 7.564 2 8.682 2 9.733 2 12.614 4.212 15 7 15s5-2.386 5-5.267c0-1.05-.368-2.169-.867-3.212-.671-1.402-1.616-2.744-2.385-3.727a28.458 28.458 0 0 0-1.354-1.605l-.022-.023-.006-.007-.002-.001L7 1.5zm0 0-.364-.343L7 1.5zm-.016.766L7 2.247l.016.019c.24.274.572.667.944 1.144.611.781 1.32 1.776 1.901 2.827H4.14c.58-1.051 1.29-2.046 1.9-2.827.373-.477.706-.87.945-1.144zM3 9.733c0-.755.244-1.612.638-2.496h6.724c.395.884.638 1.741.638 2.496C11 12.117 9.182 14 7 14s-4-1.883-4-4.267z'/></svg>";}
+     else if(scategory==6){  categoryname = "Temperature sensor";icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";}
+     else if(scategory==7){  categoryname = "Valve";}
      else icon = "";
      iconSetting = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-gear' viewBox='0 0 16 16'><path d='M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z'/><path d='M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z'/></svg>";
      iconHistory = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-clock-history' viewBox='0 0 16 16'><path d='M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z'/><path d='M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z'/><path d='M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z'/></svg>";
      iconRSSI = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-broadcast' viewBox='0 0 16 16'><path d='M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z'/></svg>";
-     if(scategory == 0) c = 'color:#dfdfdf;';
-     else c = '';
+     if(scategory == 0) c = "color:#dfdfdf;";
+     else c = "";
 
      html = "<div class='col-sm-12 col-md-6 col-lg-3 col-xl-3  mb-3' style='border-top-right-radius:1rem;border-top-left-radius:1rem;border-bottom-left-radius:1rem;border-bottom-right-radius:1rem;'>";
      html += " <div class='pointer card  shadow  bg-white rounded' >";
@@ -350,28 +359,139 @@ function AddDeviceBlock(item){
       // if(scategory==4 && sstatus == 0) html += "<div class='col'><button type='button' class='btn btn-warning' onclick=\"changeState('"+sid+"/1')\">ON</button></div>";
     
      html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' onclick=\"loadDevice('"+sid+"')\"><h6><small>" + iconHistory + " View</small></h6></button></div>";
-     html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' data-toggle='modal' data-target='#exampleModal'><h6><small>" + iconSetting + " Setting</small></h6></button></div>";
+     html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' data-toggle='modal' data-target='#myModal"+ sid +"' onclick=\"loadDevices(1)\"><h6><small>" + iconSetting + " Setting</small></h6></button></div>";
      
      html += "   </div></div></div>";
-     html += "<div class='modal fade' id='exampleModal' tabindex='-1' role='dialog' aria-labelledby='exampleModalLabel' aria-hidden='true'>\
-        <div class='modal-dialog' role='document'>\
-          <div class='modal-content'>\
-            <div class='modal-header'>\
-              <h5 class='modal-title' id='exampleModalLabel'>Modal title</h5>\
-              <button type='button' class='close' data-dismiss='modal' aria-label='Close'>\
-                <span aria-hidden='true'>&times;</span>\
-              </button>\
-            </div>\
-            <div class='modal-body'>\
-            </div>\
-            <div class='modal-footer'>\
-              <button type='button' class='btn btn-secondary' data-dismiss='modal'>Close</button>\
-              <button type='button' class='btn btn-primary'>Save changes</button>\
-            </div>\
-          </div>\
-        </div>\
-      </div>";
+     html += " <div class='modal fade' id='myModal"+ sid +"'>";
+     html += " <div class='modal-dialog modal-lg'><div class='modal-content'>";
+        // <!-- Modal Header -->
+     html += "   <div class='modal-header'>";
+     html += "     <h4 class='modal-title'>Setting "+getDeviceReadableName(sid)+"</h4>";
+     html += "  <button type='button' class='close' data-dismiss='modal' onclick=\"loadDevices(0)\">&times;</button>";
+     html += "  </div>";
+        // <!-- Modal body -->
+        html += " <div class='modal-body'>";
+          // html += "  <table style='background-color: whilte;color: black;' class='table table-striped'xs>";
+            html += " <div class='container'>";
+          //     html += " <tr>";
+        //         html += " <th>network ID</th>";
+        // html += " <th>Category</th>";
+        // // html += "  <th>Status</th>";
+        // html += "  <th>Sleep Mode</th>";
+        // html += "  <th>Value</th>";
+        // html += "  </tr>";
+        // html += "  </thead>";
+        // html += "  <tbody>";
+// const GROUP_SWITCH = 1
+// const GROUP_HT = 2
+// const GROUP_MOTION =  3
+// const GROUP_RELAY =  4
+// const GROUP_MOISTURE =  5
+// const GROUP_TEMP =  6
+// const GROUP_VALVE =  7
+          html += "<div class='row '><p>Network ID:</p><input type='number' id='netid"+ sid +"' name='netid"+ sid +"' value='0' size='1'></div></br>";
+          html += "<div class='row '><p>Category ("+categoryname+"):</p><select id='categ"+ sid +"' name='categ"+ sid +"' >";
+                    html += " <option value= 1 >Switch</option>";
+                    html += " <option value= 2 >DHT sensor</option>";
+                    html += " <option value= 3 >Motion sensor</option>";
+                    html += " <option value= 4 >Relay</option>";
+                    html += " <option value= 5 >Moisture sensor</option>";
+                    html += " <option value= 6 >Temperature sensor</option>";
+                    html += " <option value= 7 >Valve</option>";
+                    // html += " <option value= 8 >Flow Sensor</option>";
+                    html += "  </select></div></br>";
+                    html += "<div class='row '><div class='form-check'>";
+                    html += "<input type='checkbox' class='form-check-input' id='sleep"+ sid +"' name='sleep"+ sid +"' value='checked' onclick=\"ShowHideDiv(this,"+ sid +")\"/>Sleep Mode</div></div></br>";
+                    html += "<div id='value"+ sid +"' name ='value"+ sid +"' style=\"display:none\"><div class='row '><p>Time:</p><input type='number' id='time"+ sid +"' name='time"+ sid +"' value='0' size='1'><p>Ms</p></div></div></br>";
+                  
+                    html += " </div>";
+                    html += "  </div>";
+        // <!-- Modal footer -->
+        html += "  <div class='modal-footer'>";
+          html += "  <button type='button' class='btn btn-danger' data-dismiss='modal' onclick=\"loadDevices(0)\">Close</button>";
+          html += "  <button type='button' class='btn btn-info' data-dismiss='modal' onclick=\"SaveFunction("+sid+")\" >Save</button>";
+          html += " </div></div></div> </div>";
+
      document.getElementById("lista").innerHTML += html; 
+}
+
+
+    function ShowHideDiv(sleep,id) {
+        var dvPassport = document.getElementById("value"+ id +"");
+        dvPassport.style.display = sleep.checked ? "block" : "none";
+    }
+
+    function ShowAlert(sleep) {
+        var dvPassport = document.getElementById("SettingAlert");
+        dvPassport.style.display = sleep.checked ? "block" : "none";
+    }
+
+    $(document).ready(function() {
+
+
+
+    $('#subscribe').click(function(event) {
+      var topic = $('#subscribe_topic').val();
+      var qos = $('#subscribe_qos').val();
+      var data = '{"topic": "' + topic + '", "qos": ' + qos + '}';
+      socket.emit('subscribe', data=data);
+      $('#subscribe').hide();
+      $('#unsubscribe').show();
+      $('#subscribe_topic').prop('readonly', true);
+    });
+
+    $('#unsubscribe').click(function(event) {
+      socket.emit('unsubscribe_all');
+      $('#subscribe').show();
+      $('#unsubscribe').hide();
+      $('#subscribe_topic').prop('readonly', false);
+    });
+
+    socket.on('mqtt_message', function(data) {
+      console.log(data);
+      var text = '(' + data['topic'] + ' qos: ' + data['qos'] + ') ' + data['payload'];
+      var $textarea = $('#subscribe_messages');
+      $textarea.val($textarea.val() + text + '\n');
+    })
+
+    socket.on('mqtt_feedback', function(data) {
+      console.log(data);
+      if(data == "OK"){
+        alert("success");
+      }
+      // var text = '(' + data['topic'] + ' qos: ' + data['qos'] + ') ' + data['payload'];
+      // var $textarea = $('#subscribe_messages');
+      // $textarea.val($textarea.val() + text + '\n');
+
+    })
+  });
+
+
+function SaveFunction(id) {
+  var a = document.getElementById("netid"+ id +"").value;
+  var b = document.getElementById("categ"+ id +"").value;
+  var c = document.getElementById("time"+ id +"").value;
+  let DataOut = "{\"networkid\":"+ a +",\"nodeid\":"+ id + ",\"category\":" + b + ",\"time\":" + c + "}";
+  console.log(DataOut);
+  
+  socket.emit('NodeSetting', data=DataOut);
+}  
+
+function loadConfig() {
+  
+  sensor_data_array = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+
+  
+  const xhttp = new XMLHttpRequest();
+  // xhttp.addEventListener('progress', handleDeviceLoading);
+  xhttp.open("GET", "/config", true);
+  xhttp.send();
+  
+  xhttp.onload = function() {
+    clearPage();
+  html = xhttp.responseText;
+      document.getElementById("listh").innerHTML = html;
+  }
 }
 
 function changeState(id) {
@@ -777,16 +897,16 @@ function readableSize(a, b, c, d, e) {
 }
 
 function cursorLoading(){
-  document.body.style.cursor = 'progress';
+  document.body.style.cursor = "progress";
   document.getElementById("lista").innerHTML = "<div class='col-12 mt-5' style='width:100%!important;text-align:center;color:#cccccc;'>loading ...</div>";
 }
 
 function cursorDone(){
-  document.body.style.cursor = 'default';
+  document.body.style.cursor = "default";
 }      
 
    
 </script>
-       <script src="main.js?v=15"></script><script>loadDevicesName();loadDevices();</script>
+       <script src="main.js?v=15"></script><script>loadDevicesName();loadDevices(0);</script>
     </html>
   
