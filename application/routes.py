@@ -10,31 +10,13 @@ import os
 from flask_mqtt import Mqtt
 import threading
 
-def update_mqtt():
-    x = db.session.query(MQTT_Parameter).first() 
-    print('\n')
-    print('\n')
-    print('\n')
-    user = ""
-    if x.mqtt_user == '_':
-        user = ""
-    else:
-        user = x.mqtt_user
-    password = ""
-    if x.mqtt_pass == '_':
-        password = ""
-    else:
-        password = x.mqtt_pass
-    print(x.mqtt_host, x.mqtt_port,user, password)
-    print('\n')
-    print('\n')
-    app.config['MQTT_BROKER_URL'] = x.mqtt_host#'broker.emqx.io'
-    app.config['MQTT_BROKER_PORT'] = x.mqtt_port
-    app.config['MQTT_USERNAME'] = user  # Set this item when you need to verify username and password
-    app.config['MQTT_PASSWORD'] = password  # Set this item when you need to verify username and password
-    app.config['MQTT_KEEPALIVE'] = 10  # Set KeepAlive time in seconds
-    app.config['MQTT_TLS_ENABLED'] = False  # If your server supports TLS, set it True
-update_mqtt()
+app.config['MQTT_BROKER_URL'] = "test.mosquitto.org"#'broker.emqx.io'
+app.config['MQTT_BROKER_PORT'] = 1883
+app.config['MQTT_USERNAME'] = ""  # Set this item when you need to verify username and password
+app.config['MQTT_PASSWORD'] = ""  # Set this item when you need to verify username and password
+app.config['MQTT_KEEPALIVE'] = 10  # Set KeepAlive time in seconds
+app.config['MQTT_TLS_ENABLED'] = False  # If your server supports TLS, set it True
+
 
 topic = '/stat/vplab/update'
 Status_topic = '/stat/vplab/status'
@@ -82,7 +64,7 @@ def save():
     # epoch_time = epoch_time + 1
     print("data logging")
     socketio.emit('mqtt_feedback', data="OK")
-    entrys = DeviceLog(date=epoch_time, device_id=msg.device_id, category=msg.category  , status=msg.status , temperature=msg.temperature , humidity=msg.humidity, mbattery=msg.mbattery, battery=msg.battery, rssi=msg.rssi)
+    entrys = DeviceLog(date=epoch_time, network_id=msg.network_id,device_id=msg.device_id, category=msg.category  , status=msg.status , temperature=msg.temperature , humidity=msg.humidity, mbattery=msg.mbattery, battery=msg.battery, rssi=msg.rssi)
     db.session.add(entrys)
     db.session.commit()
     time.sleep(2)
@@ -185,7 +167,6 @@ def publish_message():
 
 @app.route('/')
 def index():
-    update_mqtt()
     mqtt_client._connect()
     return redirect(url_for('sen'))
 
@@ -278,7 +259,8 @@ class Message_Frame(object):
 msg = Message_Frame
 
 class sensors:
-    def __init__(self, device_id, category,status,temperature,humidity,mbattery,battery,timestamp,rssi):
+    def __init__(self, network_id, device_id, category,status,temperature,humidity,mbattery,battery,timestamp,rssi):
+        self.network_id = network_id
         self.device_id = device_id
         self.category = category
         self.status = status
@@ -308,7 +290,7 @@ def loadData():
             data = DeviceLog.query.filter(DeviceLog.device_id == deviceID.device).all()
             for datas in data:
                 ids = ids + 1
-            list_Device.append(sensors(datas.device_id,datas.category,datas.status,datas.temperature,datas.humidity,datas.battery,datas.mbattery,datas.date,datas.rssi))
+            list_Device.append(sensors(datas.network_id, datas.device_id,datas.category,datas.status,datas.temperature,datas.humidity,datas.battery,datas.mbattery,datas.date,datas.rssi))
         except:
             print('ID not found')    
     #end load data
@@ -329,12 +311,13 @@ def get_user():
     for i in range(list_lenght):
         try:
             ID = list_Device[i].device_id
+            netID = list_Device[i].network_id
+            raw += str(netID) + ","
             raw += str(ID) + ","
             raw += str(list_Device[i].category) + ","
             raw += str(list_Device[i].status) + ","
             raw += str(list_Device[i].temperature) + ","
             raw += str(list_Device[i].humidity) + ","
-            raw += "°C,"
             raw += str(list_Device[i].battery) + ","
             raw += str(list_Device[i].mbattery) + ","
             raw += str(list_Device[i].timestamp) + ","
@@ -383,11 +366,11 @@ def sensor(id):
     #     "id": ,
     #     "state": 
     # }
-@app.route("/changestate/<int:id>/<int:state>")
-def changestate(id,state):
+@app.route("/changestate/<int:netid>/<int:id>/<int:state>")
+def changestate(netid,id,state):
     ID = int(id)
     State = int(state)
-    payload = "{'id':" + str(id) + ",'state': " + str(State) + "}"
+    payload = "{'netid':" + str(netid) + ",'id':" + str(id) + ",'state': " + str(State) + "}"
     if mqtt_client.publish(Control_topic, payload):
         print("pushed message")
     else:
@@ -490,33 +473,3 @@ def device_setting():
         return redirect(url_for('sen'))
     return render_template('DeviceSetting.html', title="Device Setting", form=form)
 
-# out = os.path.dirname(os.path.abspath(__file__))
-# UPLOAD_FOLDER = out + '/static/upload'
- 
-# app.secret_key = "Cairocoders-Ednalan"
-# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
- 
-# ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
- 
-# def allowed_file(filename):
-#  return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-  
-# @app.route('/upload')
-# def upload_form():
-#  return render_template('upload.html')
- 
-# @app.route('/upload', methods=['POST'])
-# def upload_file():
-#  if request.method == 'POST':
-#         # check if the post request has the files part
-#   if 'files[]' not in request.files:
-#    flash('No file part')
-#    return redirect(request.url)
-#   files = request.files.getlist('files[]')
-#   for file in files:
-#    if file and allowed_file(file.filename):
-#     filename = secure_filename(file.filename)
-#     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-#   flash('File(s) successfully uploaded')
-#   return redirect('/')
