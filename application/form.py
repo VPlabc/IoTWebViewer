@@ -16,6 +16,33 @@ class UserDataForm(FlaskForm):
     amount = IntegerField('Amount', validators = [DataRequired()])                                   
     submit = SubmitField('Generate Report')      
 
+#define GROUP_SWITCH          1
+#define GROUP_HT              2
+#define GROUP_MOTION          3
+#define GROUP_RELAY           4
+#define GROUP_MOISTURE        5
+#define GROUP_TEMP            6
+#define GROUP_VALVE           7
+#define GROUP_POSITION        8
+#define GROUP_POWER_ENERGY    9
+class DeviceAddForm(FlaskForm):
+    network_id = IntegerField('Network ID', validators=[DataRequired()])  
+    device_id = IntegerField('Node ID', validators=[DataRequired()])  
+    category = SelectField("Category", validators=[DataRequired()],
+                                            choices =[('0', 'Gateway'),
+                                            ('1', 'Switch'),
+                                            ('2', 'DHT sensor'),
+                                            ('3', 'Motion'),
+                                            ('4', 'Relay'),
+                                            ('5', 'Moisture sensor'),
+                                            ('6', 'Temperature sensor'),
+                                            ('7', 'Valve'),
+                                            ('8', 'Position sensor'),
+                                            ('9', 'Energy sensor')
+                                            ]
+                            )                                
+    submit = SubmitField('Update Device')   
+
 class DeviceDataForm(FlaskForm):    
     network_id = IntegerField('Network ID', validators=[DataRequired()])  
     mqtt_broker = StringField('MQTT Broker', validators=[DataRequired()])  

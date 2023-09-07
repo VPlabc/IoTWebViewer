@@ -92,6 +92,7 @@
        </p>
        <div id="mqtt_alert" role="alert" class="alert alert-danger mb-4 d-none">The hub is not connected to the MQTT server</div>
        <input type='checkbox' class='form-check-input' id='alert' name='alert' value='checked' onclick="ShowAlert(this)"/>Alert</div></div></br>
+        <p><br>Average Ping: <b><span id="ping-pong"></span>ms</b></p>
        <div class="alert alert-success alert-dismissible fade show" role="alert" id="SettingAlert" style="display:none">
         <strong>Setting update</strong> Success
         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
@@ -99,18 +100,30 @@
         </button>
       </div>
        <div class="row row-cols-4 row-cols-md-6 row-cols-lg-8 row-cols-xl-5 text-center" id="lista"><div class="col-12 mt-5" style="width:100%!important;text-align:center;color:#cccccc;">loading ...</div></div>
-       <!-- <div class="form-group">
-        <label class="control-label col-xs-4">Message Send: </label>
-        <div class="col-xs-8">
-          <input id="message" class="form-control">
-        </div>
-      </div> -->
-       <!-- <div class="form-group">
-        <label class="control-label col-xs-4">Messages Recive:</label>
-        <div class="col-xs-8">
-          <textarea id="subscribe_messages" class="form-control" rows=10></textarea>
-        </div>
-      </div> -->
+
+    <!-- <h1>Flask-SocketIO Test</h1>
+    <p>
+      Async mode is: <b>{{ async_mode }}</b><br>
+      Current transport is: <b><span id="transport"></span></b><br>
+      Average ping/pong latency: <b><span id="ping-pong"></span>ms</b>
+    </p>
+    <h2>Send:</h2>
+    <form id="emit" method="POST" action='#'>
+        <input type="text" name="emit_data" id="emit_data" placeholder="Message">
+        <input type="submit" value="Echo">
+    </form>
+    
+    <form id="getdata" method="POST" action="#">
+      <input type="submit" value="getdata">
+    </form>
+    <form id="connect" method="POST" action="#">
+      <input type="submit" value="connect">
+    </form>
+    <form id="disconnect" method="POST" action="#">
+        <input type="submit" value="Disconnect">
+    </form>
+    <h2>Receive:</h2>
+    <div id="log"></div> -->
 
         
         <div class="row text-center" id="listh"></div> 
@@ -127,6 +140,8 @@ const GROUP_RELAY =  4
 const GROUP_MOISTURE =  5
 const GROUP_TEMP =  6
 const GROUP_VALVE =  7
+const GROUP_POSITION =  8
+const GROUP_POWER =  9
 sensor_category = 0;
 
 const CBLUE = "#33c5ff"
@@ -138,6 +153,7 @@ sensor_info = [];
 sensors_name = [];
 
 var reloadPeriod = 5000;
+var reloadStatus = 0;
 var running = true;
 var socket = io.connect('http://' + document.domain + ':' + location.port);
 
@@ -145,24 +161,23 @@ var socket = io.connect('http://' + document.domain + ':' + location.port);
 function loadDevices(a) {
    if(a == 1) {running = false;}
    if(a == 0) {running = true;
-  getSystemStatus();
-  if( document.getElementById("lista").innerHTML == "") return;
-  const xhttp = new XMLHttpRequest();
-  xhttp.addEventListener('progress', handleDeviceLoading);
-  xhttp.open("GET", "/raw", true);
-  xhttp.send();
-        if(running) setTimeout(loadDevices, reloadPeriod);
-  xhttp.onload = function() {
-    if(this.responseText){
-      clearPage();
-      var sensors = this.responseText.split('\n');
-      sensors.forEach( function(item) {
-        AddDeviceBlock(item);
-      });
-    }else{
-      document.getElementById("lista").innerHTML = "<div class='pt-3 text-center' style='width:100%!important'><p>No sensors have been detected.</p></div>";
-    }
-  }
+  // if( document.getElementById("lista").innerHTML == "") return;
+  // const xhttp = new XMLHttpRequest();
+  // xhttp.addEventListener('progress', handleDeviceLoading);
+  // xhttp.open("GET", "/raw", true);
+  // xhttp.send();
+  //       if(running) setTimeout(loadDevices, reloadPeriod);
+  // xhttp.onload = function() {
+  //   if(this.responseText){
+  //     clearPage();
+  //     var sensors = this.responseText.split('\n');
+  //     sensors.forEach( function(item) {
+  //       AddDeviceBlock(item);
+  //     });
+  //   }else{
+  //     document.getElementById("lista").innerHTML = "<div class='pt-3 text-center' style='width:100%!important'><p>No sensors have been detected.</p></div>";
+  //   }
+  // }
   }
 }
 // function run(){if(!running){running = true; loadDevices(); }}
@@ -284,8 +299,10 @@ function clearPage(){
 
 function AddDeviceBlock(item){
 
-     const [sid,scategory,sstatus,stemperature,shumidity,sunit,sbattery,mbattery,stimetamp,rssi] = item.split(',');  
+     const [snetid,sid,scategory,sstatus,stemperature,shumidity,sbattery,mbattery,stimetamp,rssi] = item.split(',');  
      if(!sid) return;
+     if(snetid > 10)return;
+     sunit = "°C"
      
      var perc = (sbattery - 3.3) / 0.006 | 0; 
      categoryname = "";    
@@ -301,7 +318,12 @@ function AddDeviceBlock(item){
      if(scategory==7 && sstatus == 0)   s = "CLOSED"; 
      if(scategory==2)  s = parseFloat(stemperature).toFixed(1) + sunit; h = parseFloat(shumidity).toFixed(1) + "%";
      if(scategory==5)  h = parseFloat(shumidity).toFixed(1) + "%";
-     if(scategory==6)  s = parseFloat(stemperature).toFixed(1) + sunit;;
+     if(scategory==6)  s = parseFloat(stemperature).toFixed(1) + sunit;
+
+     if(scategory==9){  
+        h = parseFloat(shumidity).toFixed(2) + "V";
+        s = parseFloat(stemperature).toFixed(2) + "A";
+     }
      
      if( sunit == "°F") dunit = 1;
 
@@ -328,7 +350,7 @@ function AddDeviceBlock(item){
      else if(scategory==5){  categoryname = "Moisture sensor";icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-moisture' viewBox='0 0 16 16'><path d='M13.5 0a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V7.5h-1.5a.5.5 0 0 0 0 1H15v2.75h-.5a.5.5 0 0 0 0 1h.5V15h-1.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 .5-.5V.5a.5.5 0 0 0-.5-.5h-2zM7 1.5l.364-.343a.5.5 0 0 0-.728 0l-.002.002-.006.007-.022.023-.08.088a28.458 28.458 0 0 0-1.274 1.517c-.769.983-1.714 2.325-2.385 3.727C2.368 7.564 2 8.682 2 9.733 2 12.614 4.212 15 7 15s5-2.386 5-5.267c0-1.05-.368-2.169-.867-3.212-.671-1.402-1.616-2.744-2.385-3.727a28.458 28.458 0 0 0-1.354-1.605l-.022-.023-.006-.007-.002-.001L7 1.5zm0 0-.364-.343L7 1.5zm-.016.766L7 2.247l.016.019c.24.274.572.667.944 1.144.611.781 1.32 1.776 1.901 2.827H4.14c.58-1.051 1.29-2.046 1.9-2.827.373-.477.706-.87.945-1.144zM3 9.733c0-.755.244-1.612.638-2.496h6.724c.395.884.638 1.741.638 2.496C11 12.117 9.182 14 7 14s-4-1.883-4-4.267z'/></svg>";}
      else if(scategory==6){  categoryname = "Temperature sensor";icon = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-thermometer-half' style='margin-top:-8px' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>";}
      else if(scategory==7){  categoryname = "Valve";}
-     else icon = "";
+     else {icon = "";icon1 = "";}
      iconSetting = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-gear' viewBox='0 0 16 16'><path d='M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z'/><path d='M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z'/></svg>";
      iconHistory = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-clock-history' viewBox='0 0 16 16'><path d='M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z'/><path d='M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z'/><path d='M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z'/></svg>";
      iconRSSI = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-broadcast' viewBox='0 0 16 16'><path d='M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z'/></svg>";
@@ -337,17 +359,20 @@ function AddDeviceBlock(item){
 
      html = "<div class='col-sm-12 col-md-6 col-lg-3 col-xl-3  mb-3' style='border-top-right-radius:1rem;border-top-left-radius:1rem;border-bottom-left-radius:1rem;border-bottom-right-radius:1rem;'>";
      html += " <div class='pointer card  shadow  bg-white rounded' >";
-     if(scategory != 0 && scategory == 7 && mbattery > 10) html += "<div class='card-header py-3 sensor_header'><div class='row'><div class='col'><p class='my-0 fw-normal '> "+getDeviceReadableName(sid)+"</p></div><div class='col'><small>"+sbattery+"v  "+b+ " | " +mbattery+"v  "+b1+"</small></div></div></div>";
-     else html += "<div class='card-header py-3 sensor_header align-items-start'><div class='row'><div class='col'><p class='my-0 fw-normal'> "+getDeviceReadableName(sid)+"</p></div><div class='col'>"+sbattery+"v  "+b+"</div></div></div>";
+     if(scategory != 0 && scategory == 7 && mbattery > 10) html += "<div class='card-header py-3 sensor_header'><div class='row'><div class='col'><p class='my-0 fw-normal '> "+getDeviceReadableName(sid)+"</p><p>"+ snetid +"</p></div><div class='col'><small>"+ parseFloat(sbattery).toFixed(2) +"v  "+b+ " | " +parseFloat(mbattery).toFixed(2)+"v  "+b1+"</small></div></div></div>";
+     else if(scategory != 0 && scategory == 9 && mbattery > 10) html += "<div class='card-header py-3 sensor_header'><div class='row'><div class='col'><p class='my-0 fw-normal '> "+getDeviceReadableName(sid)+"</p><p>"+ snetid +"</p></div><div class='col'><small>"+ parseFloat(sbattery).toFixed(2) +"kWh   | " +parseFloat(mbattery).toFixed(2)+"W  </small></div></div></div>";
+     else html += "<div class='card-header py-3 sensor_header align-items-start'><div class='row'><div class='col'><p class='my-0 fw-normal'> "+getDeviceReadableName(sid)+"</p><p>"+ snetid +"</p></div><div class='col'>"+ parseFloat(sbattery).toFixed(2) +"v  "+b+"</div></div></div>";
      html += "     <div class='card-body'><div class='row'>";
-      if(scategory != 0 && scategory == 4  && sstatus == 0)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+sid+"/1')\">ON</button></h2></div><div class='col-8'><h2 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h2></div>";
-      if(scategory != 0 && scategory == 4  && sstatus == 1)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+sid+"/0')\">OFF</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
-      if(scategory != 0 && scategory == 7  && sstatus == 1)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+sid+"/0')\">Close</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
-      if(scategory != 0 && scategory == 7  && sstatus == 0)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+sid+"/1')\">Open</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
-      if(scategory != 0 && scategory != 2 && scategory != 4 && scategory != 5 && scategory != 7 )html += "<div class='col-10'><h2 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'>"+icon+" "+s+"</h2></div><div class='col-2'><h3 class='card-title pricing-card-title mt-1' style='"+c+"'></h3></div>";
+      if(scategory != 0 && scategory == 4  && sstatus == 0)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+snetid+"/"+sid+"/1')\">ON</button></h2></div><div class='col-8'><h2 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h2></div>";
+      if(scategory != 0 && scategory == 4  && sstatus == 1)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+snetid+"/"+sid+"/0')\">OFF</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
+      if(scategory != 0 && scategory == 7  && sstatus == 1)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+snetid+"/"+sid+"/0')\">Close</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
+      if(scategory != 0 && scategory == 7  && sstatus == 0)html += "<div class='col-4'><h2 class='card-title pricing-card-title mt-1' style='"+c+"'><button type='button' class='btn btn-warning align-self-center' onclick=\"changeState('"+snetid+"/"+sid+"/1')\">Open</button></h2></div><div class='col-8'><h3 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'> "+icon+" "+s+"</h3></div>";
+      if(scategory != 0 && scategory != 2 && scategory != 4 && scategory != 5 && scategory != 7 && scategory != 9)html += "<div class='col-10'><h2 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'>"+icon+" "+s+"</h2></div><div class='col-2'><h3 class='card-title pricing-card-title mt-1' style='"+c+"'></h3></div>";
       if(scategory != 0 && scategory == 5 )html += "<div class='col-10'><h2 class='card-title pricing-card-title mt-1 align-self-center' style='"+c+"'>"+icon+" "+h+"</h2></div><div class='col-2'><h3 class='card-title pricing-card-title mt-1' style='"+c+"'></h3></div>";
       if(scategory != 0 && scategory == 2 )html += "<div class='col-6'><h4 class='card-title pricing-card-title mt-1' style='"+c+"'>"+icon+" "+s+"</h3></div><div class='col-6'> \
                                                     <h4 class='card-title pricing-card-title mt-1' style='"+c+"'>"+icon1+" "+h+"</h4></div>";
+      if(scategory != 0 && scategory == 9 )html += "<div class='col-6'><h4 class='card-title pricing-card-title mt-1' style='"+c+"'>"+s+"</h3></div><div class='col-6'> \
+                                                    <h4 class='card-title pricing-card-title mt-1' style='"+c+"'>"+h+"</h4></div>";
     //  if(scategory != 0 && scategory != 4 ) html += "       <ul class='list-unstyled mt-1 mb-1'><li>"+sbattery+"v  "+b+"</li><li><small>"+getFormatedDuration(stimetamp)+"</small></li></ul>";
     //  else if(scategory == 4) html += "       <ul class='list-unstyled mt-1 mb-1'><li>"+"main: "+sbattery+"v  "+b+ " | " +sbattery+"v  "+b+"</li><li><small>"+getFormatedDuration(stimetamp)+"</small></li></ul>";
      html += "       </div><ul class='list-unstyled '><li>" + iconRSSI + " " + rssi + "</li><li><small style='"+c+"'>"+getFormatedDuration(stimetamp)+"</small></li></ul>";
@@ -358,7 +383,7 @@ function AddDeviceBlock(item){
       // if(scategory==4 && sstatus == 1) html += "<div class='col'><button type='button' class='btn btn-warning' onclick=\"changeState('"+sid+"/0')\">OFF</button></div>";
       // if(scategory==4 && sstatus == 0) html += "<div class='col'><button type='button' class='btn btn-warning' onclick=\"changeState('"+sid+"/1')\">ON</button></div>";
     
-     html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' onclick=\"loadDevice('"+sid+"')\"><h6><small>" + iconHistory + " View</small></h6></button></div>";
+     html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' onclick=\"loadDevice('"+sid+"');loadDevices(1);\"><h6><small>" + iconHistory + " View</small></h6></button></div>";
      html += "<div class='col-6 '><button type='button' class='btn btn-secondary btn-sm' data-toggle='modal' data-target='#myModal"+ sid +"' onclick=\"loadDevices(1)\"><h6><small>" + iconSetting + " Setting</small></h6></button></div>";
      
      html += "   </div></div></div>";
@@ -429,41 +454,96 @@ function AddDeviceBlock(item){
     $(document).ready(function() {
 
 
+            // Connect to the Socket.IO server.
+            // The connection URL has the following format, relative to the current page:
+            //     http[s]://<domain>:<port>[/<namespace>]
+            var socket = io();
 
-    $('#subscribe').click(function(event) {
-      var topic = $('#subscribe_topic').val();
-      var qos = $('#subscribe_qos').val();
-      var data = '{"topic": "' + topic + '", "qos": ' + qos + '}';
-      socket.emit('subscribe', data=data);
-      $('#subscribe').hide();
-      $('#unsubscribe').show();
-      $('#subscribe_topic').prop('readonly', true);
-    });
+            // Event handler for new connections.
+            // The callback function is invoked when a connection with the
+            // server is established.
+            socket.on('connect', function() {
+                socket.emit('my_event', {data: 'I\'m connected!'});
+            });
 
-    $('#unsubscribe').click(function(event) {
-      socket.emit('unsubscribe_all');
-      $('#subscribe').show();
-      $('#unsubscribe').hide();
-      $('#subscribe_topic').prop('readonly', false);
-    });
+            // Event handler for server sent data.
+            // The callback function is invoked whenever the server emits data
+            // to the client. The data is then displayed in the "Received"
+            // section of the page.
+            socket.on('my_response', function(msg, cb) {
+                $('#log').append('<br>' + $('<div/>').text('Received #' + msg.count + ': ' + msg.data).html());
+                if (cb)
+                    cb();
+            });
 
-    socket.on('mqtt_message', function(data) {
-      console.log(data);
-      var text = '(' + data['topic'] + ' qos: ' + data['qos'] + ') ' + data['payload'];
-      var $textarea = $('#subscribe_messages');
-      $textarea.val($textarea.val() + text + '\n');
-    })
+            // Interval function that tests message latency by sending a "ping"
+            // message. The server then responds with a "pong" message and the
+            // round trip time is measured.
+            var ping_pong_times = [];
+            var start_time;
+            window.setInterval(function() {
+                start_time = (new Date).getTime();
+                $('#transport').text(socket.io.engine.transport.name);
+                socket.emit('my_ping');
+            }, 1000);
 
-    socket.on('mqtt_feedback', function(data) {
-      console.log(data);
-      if(data == "OK"){
-        alert("success");
-      }
-      // var text = '(' + data['topic'] + ' qos: ' + data['qos'] + ') ' + data['payload'];
-      // var $textarea = $('#subscribe_messages');
-      // $textarea.val($textarea.val() + text + '\n');
+            // Handler for the "pong" message. When the pong is received, the
+            // time from the ping is stored, and the average of the last 30
+            // samples is average and displayed.
+            socket.on('my_pong', function() {
+                var latency = (new Date).getTime() - start_time;
+                ping_pong_times.push(latency);
+                ping_pong_times = ping_pong_times.slice(-30); // keep last 30 samples
+                var sum = 0;
+                for (var i = 0; i < ping_pong_times.length; i++)
+                    sum += ping_pong_times[i];
+                $('#ping-pong').text(Math.round(10 * sum / ping_pong_times.length) / 10);
+                // loadDevices(2);
+                if(running) {socket.emit('Getdata');reloadStatus = reloadStatus + 1;
+                  if(reloadStatus > 60){reloadStatus = 0;getSystemStatus();}
+                }
+            });
 
-    })
+            socket.on('data_here', function(data) {//loadDevices(2);
+              if(data.data){
+                clearPage();
+                var sensors = data.data.split('\n');
+                sensors.forEach( function(item) {
+                  AddDeviceBlock(item);
+                });
+              }else{
+                document.getElementById("lista").innerHTML = "<div class='pt-3 text-center' style='width:100%!important'><p>No sensors have been detected.</p></div>";
+              }
+            });
+            
+            socket.on('Messenger', function(msg, cb) {
+                $('#log').append('<br>' + $('<div/>').text('Received #' + msg).html());
+                if (cb)
+                    cb();
+            });
+
+            // Handlers for the different forms in the page.
+            // These accept data from the user and send it to the server in a
+            // variety of ways
+            $('form#emit').submit(function(event) {
+                socket.emit('my_event', {data: $('#emit_data').val()});
+                return false;
+            });
+            $('form#disconnect').submit(function(event) {
+                socket.emit('disconnect_request');
+                return false;
+            });
+            $('form#connect').submit(function(event) {
+                socket.emit('connect_request');
+                return false;
+            });
+
+
+            $('form#getdata').submit(function(event) {
+                socket.emit('Getdata');
+                return false;
+            });
+            
   });
 
 
@@ -475,6 +555,7 @@ function SaveFunction(id) {
   console.log(DataOut);
   
   socket.emit('NodeSetting', data=DataOut);
+  loadDevices(0);
 }  
 
 function loadConfig() {
@@ -522,7 +603,9 @@ function loadDevice(id) {
     if(this.responseText && this.responseText != "No SD card found."){
       clearPage();
       html = " <div class='col-12'>";
-      html += "     <div class='row alert mb-4' style='padding:25px!important;background-color:#393939;margin-top:-27px;color:white;border-top-right-radius:0rem;border-top-left-radius:0rem;border-bottom-left-radius:0.5rem;border-bottom-right-radius:0.6rem;'><div id='icon' class='col-1'></div><div class='my-0 fw-normal col-2' style='text-align:left'> <a style='color:white' type='button' class='btn btn-warning' href='/sen'>back</a>"+getDeviceReadableName(id.substring(0, id.length-4))+"</div><div id='scount' class='col-4'>"+id+"</div><div class='col-3'><a  type='button' class='btn btn-warning' style='color:red' href='#' onclick=\"deleteDevice('"+id+"');return false;\"> Delete</a></div><div id='sbattery' class='col-2'></div></div><div id='sgraph'></div><div id='sdata' class='p-2' style='color:#666666'></div>";
+      html += "     <div class='row alert mb-4' style='padding:25px!important;background-color:#393939;margin-top:-27px;color:white;border-top-right-radius:0rem;border-top-left-radius:0rem;border-bottom-left-radius:0.5rem;border-bottom-right-radius:0.6rem;'>";
+      html +=   "<div id='icon' class='col-1'></div><div class='my-0 fw-normal col-2' style='text-align:left'> <a style='color:white' type='button' class='btn btn-warning' href='/sen'>back</a>"+getDeviceReadableName(id.substring(0, id.length-4))+"</div><div id='scount' class='col-4'>"+id+"</div><div class='col-3'><a  type='button' class='btn btn-warning' style='color:red' href='#' onclick=\"deleteDevice('"+id+"');return false;\"> Delete</a></div>";
+      html +=  "<div id='sbattery' class='col-2'></div></div><div id='sgraph'></div><div id='sdata' class='p-2' style='color:#666666'></div>";
 
       document.getElementById("listh").innerHTML += html; 
       var sensors = this.responseText.split('\n');
@@ -559,8 +642,8 @@ function AddDeviceLine(item){
     sensor_info['category'] = lcategory;
     if( sensor_info['count'] > 0 ) sensor_info['count'] = sensor_info['count'] + 1;
     else sensor_info['count'] = 1;
-    sensor_info['battery'] = lbattery;
-    sensor_info['mbattery'] = lmbattery;
+    sensor_info['battery'] = parseFloat(lbattery).toFixed(2);
+    sensor_info['mbattery'] = parseFloat(lmbattery).toFixed(2);
     sensor_info['timestamp'] = ltimestamp;
     
     const date = new Date(ltimestamp * 1000);
@@ -574,17 +657,17 @@ function AddDeviceLine(item){
      else if(lcategory==7)  document.getElementById("icon").innerHTML = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-broadcast' viewBox='0 0 16 16'><path d='M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707zm2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708zm5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708zm2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0z'/></svg>";
      else document.getElementById("icon").innerHTML = "";
      
-     html  = "<div class='row mb-0' style='font-size:0.8rem;'><div class='col-4 text-left'>"+date.toDateString()+"</div><div class='col-2 text-left'>"+date.toLocaleTimeString('en-US')+"</div>";
+     html  = "<div class='row mb-0' style='font-size:0.8rem;'><div class='col-2 text-left'>"+date.toDateString()+"</div><div class='col-2 text-left'>"+date.toLocaleTimeString('en-US')+"</div>";
      if( lcategory == 1){
         if(lstatus == 0) html += "<div class='col-2 text-left'>CLOSED</div>"; 
         else html += "<div class='col-2 text-left'>OPEN</div>";       
      }
      if( lcategory == 2){
         if(lhumidity > 0){
-            html += "<div class='col-2 text-left'>"+getFormatedTemperature(ltemperature,dunit) + "</div>"; 
-            html += "<div class='col-2 text-left'>"+lhumidity+"%</div>";   
+            html += "<div class='col-2 text-left'>"+getFormatedTemperature(parseFloat(ltemperature).toFixed(2),dunit) + "</div>"; 
+            html += "<div class='col-2 text-left'>"+parseFloat(lhumidity).toFixed(2)+"%</div>";   
         }else{
-            html += "<div class='col-4 text-left'>"+getFormatedTemperature(ltemperature,dunit) + "</div>"; 
+            html += "<div class='col-4 text-left'>"+getFormatedTemperature(parseFloat(ltemperature).toFixed(2),dunit) + "</div>"; 
         }
      } 
      if( lcategory == 3){
@@ -596,14 +679,18 @@ function AddDeviceLine(item){
         else html += "<div class='col-2 text-left'>OFF</div>";  
      } 
      if( lcategory == 5){
-        html += "<div class='col-2 text-left'>"+lhumidity+"%</div>";  
+        html += "<div class='col-2 text-left'>"+parseFloat(lhumidity).toFixed(2) +"%</div>";  
      } 
      if( lcategory == 6){
-        html += "<div class='col-2 text-left'>"+ltemperature+"%</div>";  
+        html += "<div class='col-2 text-left'>"+parseFloat(ltemperature).toFixed(2)+"%</div>";  
      } 
      if( lcategory == 7){
         if(lstatus == 1) html += "<div class='col-2 text-left'>OPEN</div>"; 
         else html += "<div class='col-2 text-left'>CLOSE</div>";  
+     } 
+     if( lcategory == 9){
+            html += "<div class='col-1 text-left'>"+parseFloat(ltemperature).toFixed(2)+"A</div>"; 
+            html += "<div class='col-1 text-left'>"+parseFloat(lhumidity).toFixed(2)+"V</div>";   
      } 
 
 
@@ -618,8 +705,14 @@ function AddDeviceLine(item){
 
 
      html += "<div class='col-1 text-left'>"+ iconRSSI + " " + lrssi+"</div>"; 
-     html += "<div class='col-1 text-center'>"+ b + " " + lmbattery+"v</div>"; 
-     if(lbattery >= 10)html += "<div class='col-1 text-center'>"+ b1 + " " + lbattery+"v</div>"; 
+     if(lcategory!=9){
+      html += "<div class='col-1 text-center'>"+ b + " " + lbattery+"v</div>"; 
+      if(lbattery >= 10)html += "<div class='col-1 text-center'>"+ b1 + " " + lmbattery+"v</div>"; 
+     }   
+     else{
+      html += "<div class='col-1 text-center'>" + parseFloat(lbattery).toFixed(2) +"W</div>"; 
+      html += "<div class='col-1 text-center'>" + parseFloat(lmbattery).toFixed(2) +"KWh</div>"; 
+     }
      html += "</div>"
      var sdata = document.getElementById("sdata");
      sdata.innerHTML = html + sdata.innerHTML; 
@@ -628,13 +721,17 @@ function AddDeviceLine(item){
 
 
 function showLatestData(){
-
+    if(sensor_category != GROUP_POWER){
      if(sensor_info['mbattery']  >= 3.75)  b = "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='20' fill='currentColor' class='bi bi-battery-full' viewBox='0 0 16 16'><path d='M2 6h10v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";  
      else if(sensor_info['mbattery']  >= 3.4) b = "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='20' fill='currentColor' class='bi bi-battery-half' viewBox='0 0 16 16'><path d='M2 6h5v4H2V6z'/><path d='M2 4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2zm10 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h10zm4 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
      else b = "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='20' fill='currentColor' class='bi bi-battery text-danger' viewBox='0 0 16 16'><path d='M0 6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6zm2-1a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H2zm14 3a1.5 1.5 0 0 1-1.5 1.5v-3A1.5 1.5 0 0 1 16 8z'/></svg>";
-
+    }
     document.getElementById("scount").innerHTML =  sensor_info['count'] + " records  ";
-    document.getElementById("sbattery").innerHTML = b + sensor_info['mbattery'] + "V";   
+
+    if(sensor_category == GROUP_POWER){
+    document.getElementById("sbattery").innerHTML = parseFloat(sensor_info['mbattery']).toFixed(2) + "V";}
+    else{
+    document.getElementById("sbattery").innerHTML = b + parseFloat(sensor_info['mbattery']).toFixed(2) + "V";}
 }
 
 
@@ -647,6 +744,7 @@ function plotDeviceData(){
     else if(sensor_category == GROUP_MOISTURE) plotDeviceDataMoisture();  
     else if(sensor_category == GROUP_TEMP) plotDeviceDataTemp(); 
     else if(sensor_category == GROUP_VALVE) plotDeviceDataValve(); 
+    else if(sensor_category == GROUP_POWER) plotDeviceDataHT(); 
 }
 
 function plotDeviceDataSwitch(){}
@@ -907,6 +1005,6 @@ function cursorDone(){
 
    
 </script>
-       <script src="main.js?v=15"></script><script>loadDevicesName();loadDevices(0);</script>
+       <script src="/application/static/js/main.js?v=15"></script><script>loadDevicesName();loadDevices(0);</script>
     </html>
   

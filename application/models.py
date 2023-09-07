@@ -19,9 +19,24 @@ def __init__(self, id, type, category,date, amount):
    self.date = date
    self.amount = amount
 
+class DeviceAdd(db.Model):
+    
+    id = db.Column(db.Integer, primary_key=True)    
+    network_id = db.Column(db.Integer, nullable=True)
+    device_id = db.Column(db.Integer, nullable=True)
+    category = db.Column(db.Integer, nullable=False, default='1')
+    
+
+def __init__(self, id, network_id, device_id, category ):
+   self.id = id
+   self.network_id = network_id
+   self.device_id = device_id
+   self.category = category
+
 class DeviceLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Integer,unique = True, default=datetime.utcnow)
+    network_id = db.Column(db.Integer, nullable=True)
     device_id = db.Column(db.Integer, nullable=True)
     category = db.Column(db.Integer, nullable=False, default='1')
     status = db.Column(db.Integer, nullable=False)
@@ -32,9 +47,10 @@ class DeviceLog(db.Model):
     rssi = db.Column(db.Float, nullable=False)
     
 
-def __init__(self, id, date, device_id,category, status, temperature, humidity, mbattery, battery, rssi):
+def __init__(self,network_id, id, date, device_id,category, status, temperature, humidity, mbattery, battery, rssi):
    self.id = id
    self.date = date
+   self.network_id = network_id
    self.device_id = device_id
    self.category = category
    self.status = status

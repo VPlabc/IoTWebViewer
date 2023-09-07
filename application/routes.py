@@ -1,7 +1,7 @@
 from application import app, socketio
-from flask import render_template, request, url_for, redirect,flash, get_flashed_messages, jsonify,copy_current_request_context
-from application.form import UserDataForm, DeviceDataForm
-from application.models import IncomeExpenses, DeviceLog, Parameters, device_list,MQTT_Parameter
+from flask import render_template, request, url_for, redirect,flash,get_flashed_messages, jsonify,copy_current_request_context
+from application.form import UserDataForm, DeviceDataForm, DeviceAddForm
+from application.models import IncomeExpenses, DeviceAdd, DeviceLog, Parameters, device_list,MQTT_Parameter
 from application import db
 from werkzeug.utils import secure_filename
 import json
@@ -9,6 +9,11 @@ import time
 import os
 from flask_mqtt import Mqtt
 import threading
+from threading import Lock
+from flask_socketio import SocketIO, emit, disconnect
+async_mode = None
+thread = None
+thread_lock = Lock()
 
 app.config['MQTT_BROKER_URL'] = "test.mosquitto.org"#'broker.emqx.io'
 app.config['MQTT_BROKER_PORT'] = 1883
@@ -25,6 +30,7 @@ Setting_topic = '/stat/vplab/setting'
 
 mqtt_client = Mqtt(app)
 
+history = 0
 mqtt_stt = 1
 sd_stt = 0
 reciver_stt = 1
@@ -34,54 +40,80 @@ mqtt_client.subscribe(topic) # subscribe topic
 
 def save():     
     print(f'{msg.device_id}, {msg.network_id}, {msg.category}, {msg.status}, {msg.temperature}, {msg.humidity}, {msg.mbattery}, {msg.battery}, {msg.rssi}')
-    epoch_time = int(time.time())
-    new_sensor_found = False
-    list_lenght = 0
-    list_deviceID = device_list.query.filter().all()  
-    try:
-        for deviceID in list_deviceID:
-            list_lenght = list_lenght + 1
-            # print("ID" + str(deviceID.device))
-            if msg.device_id == deviceID.device:
-                new_sensor_found = True
-    except Exception as e:
-        print(e)
-    if new_sensor_found == False and msg.rssi < 100:
-        # print(f'New Device')
-        updateparameter = Parameters.query.get_or_404(1)
-        updateparameter.devices = list_lenght + 1
-        # print("update parameters")
-        # db.session.commit()
+    if msg.device_id == None or msg.device_id == None or msg.category == None or msg.status == None or msg.temperature == None or msg.humidity == None or msg.mbattery == None  or msg.battery == None or msg.rssi == None :
+        print("data error")
+    else:
+        epoch_time = int(time.time())
+        new_sensor_found = False
+        list_lenght = 0
+        list_deviceID = device_list.query.filter().all()  
+        try:
+            for deviceID in list_deviceID:
+                list_lenght = list_lenght + 1
+                print("- ID" + str(deviceID.device))
+                if msg.device_id == deviceID.device:
+                    new_sensor_found = True
+        except:
+            print("error device list")
+        if new_sensor_found == False and msg.rssi < 100:
+            print(f'New Device')
+            try:
+                deviceID = device_list(id=list_lenght+1,device=msg.device_id)
+                db.session.add(deviceID)
+                db.session.commit()   
+                updateparameter = Parameters.query.get_or_404(1)
+                updateparameter.devices = list_lenght + 1
+                print("update parameters "+ str(updateparameter.devices))
+                db.session.add(updateparameter)
+                db.session.commit()
+                print("parameters readding")
+                updateparameter = db.session.query(Parameters).filter(Parameters.id==1)
+                for getlogdata in updateparameter:
+                    print("parameters read "+ str(getlogdata.devices))
+                db.session.commit() 
+                flash(f"{msg.device_id} has been added to {msg.device_id}", "success")
+            except:
+                # updatePara = Parameters(devices=1)
+                # db.session.add(updatePara)
+                print("creat parameters error")
+            print("_________________________________________________________________\n\n\n")
 
-        # print(f'ADD Device {msg.device_id}')
-        # try:
-        deviceID = device_list(device=msg.device_id)
-        db.session.add(deviceID)
-        # db.session.commit()    
-        # except Exception as e:
-        #     print(e)
-        # flash(f'New Device {msg.device_id}','success')
-    # epoch_time = epoch_time + 1
-    print("data logging")
-    socketio.emit('mqtt_feedback', data="OK")
-    entrys = DeviceLog(date=epoch_time, network_id=msg.network_id,device_id=msg.device_id, category=msg.category  , status=msg.status , temperature=msg.temperature , humidity=msg.humidity, mbattery=msg.mbattery, battery=msg.battery, rssi=msg.rssi)
-    db.session.add(entrys)
-    db.session.commit()
-    time.sleep(2)
-    # print("update device log")
-    # flash(f"ID {msg.device_id} has been added", "success")
-    # print(f"ID {msg.device_id} has been added")
-    # except:
-    #     loadData()
-    #     print("save error")
-
+            # try:
+            #     print("device list lenght :" + str(list_lenght))
+            #     deviceID = device_list(id=list_lenght+1 ,device=msg.device_id)
+            #     db.session.add(deviceID)
+            #     db.session.commit()    
+            # except Exception as e:
+            #     print(e)
+            #     print("_________________________________________________________________\n\n\n")
+            flash(f'New Device {msg.device_id}','success')
+        # epoch_time = epoch_time + 1
+        time.sleep(2)
+        try:
+            # socketio.emit('mqtt_feedback', data="OK")
+            entrys = DeviceLog(
+                date=epoch_time, 
+                network_id=msg.network_id,
+                device_id=msg.device_id, 
+                category=msg.category, 
+                status=msg.status, 
+                temperature=msg.temperature, 
+                humidity=msg.humidity, 
+                mbattery=msg.mbattery, 
+                battery=msg.battery, 
+                rssi=msg.rssi)
+            db.session.add(entrys)
+            print("data logging")
+        except:
+            print("save error")
+        db.session.commit()
 
 #__________ Socket
 @socketio.on('NodeSetting')
 def handle_publish(json_str):
     data = json.loads(json_str)
     print(data)
-    socketio.emit('mqtt_feedback', data="OK")
+    # socketio.emit('mqtt_feedback', data="OK")
     mqtt_client.publish(Setting_topic,str(data))
 
 
@@ -113,7 +145,9 @@ def handle_mqtt_message(client, userdata, message):
         topic=message.topic,
         payload=message.payload.decode()
     )
-    socketio.emit('mqtt_message', data=data)
+    # socketio.emit('mqtt_message', data=data)
+    # socketio.emit('Messenger',data)
+
     # print("payload: " + str(data))
     jsonData = json.dumps(data)
     # print("payload: " + jsonData)
@@ -168,6 +202,7 @@ def publish_message():
 @app.route('/')
 def index():
     mqtt_client._connect()
+
     return redirect(url_for('sen'))
 
 @app.route('/statup')
@@ -175,8 +210,12 @@ def statup():
     try:    
         entrys = Parameters(id=1, devices=1)
         db.session.add(entrys)
-        # entrys = DeviceLog(date=epoch_time, device_id=0, category=0 , status=0 , temperature=1 , humidity=1, mbattery=1, battery=1, rssi=100)
-        # db.session.add(entrys)
+        entrys = DeviceLog(date=epoch_time, device_id=0, category=0 , status=0 , temperature=1 , humidity=1, mbattery=1, battery=1, rssi=100)
+        updatePara = Parameters(devices=1)
+        db.session.add(updatePara)
+        print("creat parameters")
+        print("update parameters")
+        db.session.add(entrys)
         db.session.commit()
     except Exception as e:
         print(e)
@@ -202,7 +241,56 @@ def add_expense():
         flash(f"{form.type.data} has been added to {form.type.data}s", "success")
         return redirect(url_for('index'))
     return render_template('add.html', title="Add expenses", form=form)
-    
+
+@app.route('/addDevice', methods = ["POST", "GET"])
+def add_device():
+    form = DeviceAddForm()
+    new_sensor_found = False
+
+    if form.validate_on_submit():
+        # entry = DeviceAdd(network_id=form.device_id.data, device_id=form.device_id.data, category=form.category.data)
+        # db.session.add(entry)
+        # db.session.commit()
+        list_lenght = 0
+        list_deviceID = device_list.query.filter().all()  
+        for deviceID in list_deviceID:
+            list_lenght = list_lenght + 1
+            print(" ID" + str(deviceID.device))
+            if deviceID.device == form.device_id.data:
+                print("ID " + str(deviceID.device) + "is found")
+                new_sensor_found = True
+        if new_sensor_found == True:
+            deviceID = device_list(id=list_lenght+1, device=form.device_id.data)
+            db.session.add(deviceID)
+            updateparameter = db.session.query(Parameters)
+            updateparams = updateparameter.filter(Parameters.id==1)
+            print("parameters read"+ str(updateparams))
+
+
+            updateparameter.devices = list_lenght + 1
+            print("update parameters :"+ str(updateparameter.devices))
+        else:
+            print(f'ADD Device {form.device_id.data}')
+            # try:
+            deviceID = device_list(id=list_lenght+1,device=form.device_id.data)
+            db.session.add(deviceID)
+            db.session.commit()   
+            updateparameter = Parameters.query.get_or_404(1)
+            updateparameter.devices = list_lenght + 1
+            print("update parameters "+ str(updateparameter.devices))
+            db.session.add(updateparameter)
+            db.session.commit()
+            print("parameters readding")
+            updateparameter = db.session.query(Parameters).filter(Parameters.id==1)
+            for getlogdata in updateparameter:
+                print("parameters read "+ str(getlogdata.devices))
+            db.session.commit() 
+            flash(f"{form.device_id.data} has been added to {form.device_id.data}", "success")
+            # except Exception as e:
+            #     print(e)
+        # epoch_time = epoch_time + 1
+        return redirect(url_for('index'))
+    return render_template('addDevice.html', title="Add expenses", form=form)    
 
 
 @app.route('/delete-post/<int:entry_id>')
@@ -296,6 +384,7 @@ def loadData():
     #end load data
 loadData()
 
+
 @app.route("/raw", methods=['GET'])
 def get_user():
     list_lenght = 0
@@ -346,6 +435,8 @@ def retry_sd():
 
 @app.route("/sensor/<int:id>")
 def sensor(id): 
+    global history
+    history = 1
     ids = 0
     dataOut = ""
     data = DeviceLog.query.filter(DeviceLog.device_id == id).all()
@@ -444,11 +535,11 @@ def sen():
         #     db.session.add(c1)
         #     db.session.commit()
         #     print("add MQTT parameters")
-        return render_template('device.html')
+        return render_template('device.html', async_mode=socketio.async_mode)
         # return redirect(url_for('sen'))
     try:
         # mqtt_client._connect()
-        return render_template('device.html')
+        return render_template('device.html', async_mode=socketio.async_mode)
     except:
         print("Error")
         return render_template('add.html',title="Add expenses")
@@ -472,4 +563,132 @@ def device_setting():
         print("add MQTT parameters")
         return redirect(url_for('sen'))
     return render_template('DeviceSetting.html', title="Device Setting", form=form)
+# ///////////////////////////////////////////// Socket //////////////////////////////////////
+# 
+def background_thread():
+    """Example of how to send server generated events to clients."""
+    count = 0
+    while True:
+        socketio.sleep(10)
+        count += 1
+        socketio.emit('my_response',
+                      {'data': 'Server generated event', 'count': count})
+
+
+# @socketio.event
+# def my_event(message):
+    # session['receive_count'] = session.get('receive_count', 0) + 1
+    # emit('my_response',
+        #  {'data': message['data'], 'count': session['receive_count']})
+
+
+
+@socketio.event
+def disconnect_request():
+    @copy_current_request_context
+    def can_disconnect():
+        disconnect()
+
+    # session['receive_count'] = session.get('receive_count', 0) + 1
+    # for this emit we use a callback function
+    # when the callback function is invoked we know that the message has been
+    # received and it is safe to disconnect
+    # emit('my_response',
+    #      {'data': 'Disconnected!', 'count': session['receive_count']},
+    #      callback=can_disconnect)
+
+@socketio.event
+def connect_request():
+    @copy_current_request_context
+    def can_connect():
+        connect()
+
+    # session['receive_count'] = session.get('receive_count', 0) + 1
+    # for this emit we use a callback function
+    # when the callback function is invoked we know that the message has been
+    # received and it is safe to disconnect
+    # emit('my_response',
+    #      {'data': 'connected!', 'count': session['receive_count']},
+    #      callback=connect)
+    
+@socketio.event
+def my_ping():
+    emit('my_pong')
+
+@socketio.event
+def Getdata():
+    list_lenght = 0
+    list_deviceID = device_list.query.filter().all()  
+    for deviceID in list_deviceID:
+        list_lenght = list_lenght + 1
+        # print("Device ID:" + str(deviceID.device))
+    count = Parameters.query.filter(Parameters.id == 1).first()  
+    loadData()
+    # print("count device: " + str(count.devices)) 
+    raw = ""
+    
+    for i in range(list_lenght):
+        try:
+            ID = list_Device[i].device_id
+            netID = list_Device[i].network_id
+            raw += str(netID) + ","
+            raw += str(ID) + ","
+            raw += str(list_Device[i].category) + ","
+            raw += str(list_Device[i].status) + ","
+            raw += str(list_Device[i].temperature) + ","
+            raw += str(list_Device[i].humidity) + ","
+            raw += str(list_Device[i].battery) + ","
+            raw += str(list_Device[i].mbattery) + ","
+            raw += str(list_Device[i].timestamp) + ","
+            raw += str(list_Device[i].rssi )
+            if i < list_lenght - 1:
+                raw += "\n"
+        except:
+            print("list out range")
+    emit('data_here',{'data':raw},callback=connect)
+
+@socketio.event
+def connect():
+    global thread
+    with thread_lock:
+        if thread is None:
+            thread = socketio.start_background_task(background_thread)
+    emit('my_response', {'data': 'Connected', 'count': 0})
+
+
+@socketio.on('disconnect')
+def test_disconnect():
+    print('Client disconnected', request.sid)
+
+
+# out = os.path.dirname(os.path.abspath(__file__))
+# UPLOAD_FOLDER = out + '/static/upload'
+ 
+# app.secret_key = "Cairocoders-Ednalan"
+# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+ 
+# ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+ 
+# def allowed_file(filename):
+#  return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+  
+# @app.route('/upload')
+# def upload_form():
+#  return render_template('upload.html')
+ 
+# @app.route('/upload', methods=['POST'])
+# def upload_file():
+#  if request.method == 'POST':
+#         # check if the post request has the files part
+#   if 'files[]' not in request.files:
+#    flash('No file part')
+#    return redirect(request.url)
+#   files = request.files.getlist('files[]')
+#   for file in files:
+#    if file and allowed_file(file.filename):
+#     filename = secure_filename(file.filename)
+#     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+#   flash('File(s) successfully uploaded')
+#   return redirect('/')
 

@@ -1,0 +1,17 @@
+///////////////// READ DATA FORM SQLAlchemy.
+
+    print("_________________________________________________________")
+    
+    print("parameters readding")
+    updateparameter = db.session.query(Parameters).filter(Parameters.id==1)
+    for getlogdata in updateparameter:
+        print("parameters read "+ str(getlogdata.devices))
+
+    getlogdatas = db.session.query(DeviceLog).filter(DeviceLog.device_id == 4)
+    for getlogdata in getlogdatas:
+        if getlogdata.id >= 100 and getlogdata.id <= 105:
+            print("parameters read: temperture"+ str(getlogdata.temperature) + " |  humidity: "+ str(getlogdata.humidity))
+    
+    print("Done")  
+    print("_________________________________________________________")
+
